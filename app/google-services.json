@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "338692993590",
+    "project_id": "organizadorandroid",
+    "storage_bucket": "organizadorandroid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:338692993590:android:91910205bfdf04ebca1e97",
+        "android_client_info": {
+          "package_name": "com.example.organizadoracademico"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWKfoHbNkpbx7OShNDJcHhLynXA0L2kAo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
