@@ -26,11 +26,11 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single<IMateriaRepository> { MateriaRepositoryImpl(get()) }
-    single<IProfesorRepository> { ProfesorRepositoryImpl(get()) }
-    single<IHorarioRepository> { HorarioRepositoryImpl(get()) }
-    single<IImagenRepository> { ImagenRepositoryImpl(get()) }
-    single<IUsuarioRepository> { UsuarioRepositoryImpl(get()) }
+    single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
+    single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
+    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get()) }
+    single<IImagenRepository> { ImagenRepositoryImpl(get(), get()) }
+    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get()) }
 }
 
 val useCaseModule = module {
