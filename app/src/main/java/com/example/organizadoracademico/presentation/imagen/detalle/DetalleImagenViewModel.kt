@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.organizadoracademico.domain.usercase.imagen.DeleteImagenUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.UpdateNotaUseCase
+import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
 import com.example.organizadoracademico.hardware.vibration.VibratorManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -16,6 +18,7 @@ class DetalleImagenViewModel(
     private val getImagenUseCase: GetImagenUseCase,
     private val updateNotaUseCase: UpdateNotaUseCase,
     private val deleteImagenUseCase: DeleteImagenUseCase,
+    private val getMateriasUseCase: GetMateriasUseCase, // <-- CASO DE USO AÑADIDO
     private val vibratorManager: VibratorManager
 ) : ViewModel() {
 
@@ -25,35 +28,13 @@ class DetalleImagenViewModel(
     fun onEvent(event: DetalleImagenEvent) {
         when (event) {
             is DetalleImagenEvent.CargarImagen -> cargarImagen(event.id)
-
-            is DetalleImagenEvent.IniciarEdicion -> {
-                _state.update { it.copy(isEditando = true) }
-            }
-
-            is DetalleImagenEvent.CancelarEdicion -> {
-                _state.update {
-                    it.copy(
-                        isEditando = false,
-                        nota = it.imagen?.nota ?: ""
-                    )
-                }
-            }
-
-            is DetalleImagenEvent.NotaCambio -> {
-                _state.update { it.copy(nota = event.nota, isEditando = true) }
-            }
-
+            is DetalleImagenEvent.IniciarEdicion -> _state.update { it.copy(isEditando = true) }
+            is DetalleImagenEvent.CancelarEdicion -> _state.update { it.copy(isEditando = false, nota = it.imagen?.nota ?: "") }
+            is DetalleImagenEvent.NotaCambio -> _state.update { it.copy(nota = event.nota) }
             is DetalleImagenEvent.GuardarNota -> guardarNota()
-
-            is DetalleImagenEvent.ToggleFavorita -> {
-                toggleFavorita()
-            }
-
+            is DetalleImagenEvent.ToggleFavorita -> { /* Lógica futura */ }
             is DetalleImagenEvent.EliminarImagen -> eliminarImagen()
-
-            is DetalleImagenEvent.ResetError -> {
-                _state.update { it.copy(errorMessage = null) }
-            }
+            is DetalleImagenEvent.ResetError -> _state.update { it.copy(errorMessage = null) }
         }
     }
 
@@ -62,20 +43,21 @@ class DetalleImagenViewModel(
             _state.update { it.copy(isLoading = true) }
             try {
                 val imagen = getImagenUseCase(id)
-                _state.update {
-                    it.copy(
-                        imagen = imagen,
-                        nota = imagen?.nota ?: "",
-                        isLoading = false
-                    )
+                if (imagen != null) {
+                    val materia = getMateriasUseCase().first().find { it.id == imagen.materiaId }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            imagen = imagen,
+                            nombreMateria = materia?.nombre ?: "Detalle",
+                            nota = imagen.nota ?: ""
+                        )
+                    }
+                } else {
+                    throw Exception("Imagen no encontrada")
                 }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Error al cargar la imagen: ${e.message}"
-                    )
-                }
+                _state.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
@@ -97,19 +79,6 @@ class DetalleImagenViewModel(
                     _state.update { state ->
                         state.copy(errorMessage = "Error al guardar la nota: ${e.message}")
                     }
-                }
-            }
-        }
-    }
-
-    private fun toggleFavorita() {
-        viewModelScope.launch {
-            _state.value.imagen?.let {
-                // Implementar lógica de favoritos cuando exista el caso de uso
-                vibratorManager.vibrateClick()
-                // Por ahora solo actualizamos el estado local
-                _state.update { state ->
-                    state.copy() // Placeholder
                 }
             }
         }

@@ -99,7 +99,6 @@ val viewModelModule = module {
 
     viewModel {
         CamaraViewModel(
-            cameraManager = get(),
             imageSaver = get()
         )
     }
@@ -128,6 +127,7 @@ val viewModelModule = module {
             getImagenUseCase = get(),
             updateNotaUseCase = get(),
             deleteImagenUseCase = get(),
+            getMateriasUseCase = get(),
             vibratorManager = get()
         )
     }

@@ -27,7 +27,19 @@ fun MisMateriasScreen(
     viewModel: MisMateriasViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val materiasFiltradas = viewModel.getMateriasFiltradas()
+
+    // Lógica de filtrado reactiva
+    val materiasFiltradas by remember(state.materias, state.searchQuery) {
+        derivedStateOf {
+            if (state.searchQuery.isBlank()) {
+                state.materias
+            } else {
+                state.materias.filter {
+                    it.nombre.contains(state.searchQuery, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -39,7 +51,7 @@ fun MisMateriasScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Agregar materia */ }) {
+                    IconButton(onClick = { navController.navigate("crear_horario") }) {
                         Text("➕", fontSize = 20.sp, color = MoradoNeon)
                     }
                 },

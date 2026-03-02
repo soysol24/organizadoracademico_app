@@ -1,17 +1,14 @@
 package com.example.organizadoracademico.presentation.imagen.camara
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.organizadoracademico.hardware.camera.CameraManager
 import com.example.organizadoracademico.hardware.camera.ImageSaver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class CamaraViewModel(
-    private val cameraManager: CameraManager,
+    // El CameraManager se usará directamente en la UI, no aquí.
     private val imageSaver: ImageSaver
 ) : ViewModel() {
 
@@ -21,50 +18,24 @@ class CamaraViewModel(
     fun onEvent(event: CamaraEvent) {
         when (event) {
             is CamaraEvent.Inicializar -> {
+                // La materiaId se sigue necesitando para guardar la foto.
                 _state.update { it.copy(materiaId = event.materiaId) }
             }
-            is CamaraEvent.TomarFoto -> {
-                tomarFoto()
-            }
             is CamaraEvent.FotoTomada -> {
-                _state.update { it.copy(lastPhotoUri = event.uri, isTakingPhoto = false) }
+                _state.update { it.copy(lastPhotoUri = event.uri) }
             }
             is CamaraEvent.ContinuarConNota -> {
+                // Lógica para guardar la foto (si es necesario) y navegar
                 _state.update { it.copy(photoSaved = true) }
             }
             is CamaraEvent.DescartarFoto -> {
                 _state.update { it.copy(lastPhotoUri = null) }
             }
-            is CamaraEvent.SolicitarPermiso -> {
-                _state.update { it.copy(shouldShowPermissionDialog = true) }
-            }
-            is CamaraEvent.PermisoConcedido -> {
-                _state.update { it.copy(hasCameraPermission = true, shouldShowPermissionDialog = false) }
-            }
-            is CamaraEvent.PermisoDenegado -> {
-                _state.update { it.copy(shouldShowPermissionDialog = false) }
-            }
             is CamaraEvent.ResetError -> {
                 _state.update { it.copy(errorMessage = null) }
             }
+            // Los eventos de permisos se manejarán en la UI
+            else -> {}
         }
-    }
-
-    private fun tomarFoto() {
-        _state.update { it.copy(isTakingPhoto = true, errorMessage = null) }
-
-        cameraManager.takePhoto(
-            onSuccess = { uri ->
-                onEvent(CamaraEvent.FotoTomada(uri))
-            },
-            onError = { error ->
-                _state.update { it.copy(isTakingPhoto = false, errorMessage = error) }
-            }
-        )
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        cameraManager.shutdown()
     }
 }

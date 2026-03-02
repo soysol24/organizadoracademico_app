@@ -9,6 +9,10 @@ import com.example.organizadoracademico.domain.usercase.profesor.GetProfesoresUs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -54,38 +58,29 @@ class CrearHorarioViewModel(
     }
 
     private fun cargarDatosIniciales() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+        _state.update { it.copy(isLoading = true) }
 
-            try {
-                // Cargar materias
-                getMateriasUseCase().collect { materias ->
-                    _state.update { state ->
-                        state.copy(
-                            materias = materias,
-                            isLoading = false
-                        )
-                    }
-                }
+        val materiasFlow = getMateriasUseCase()
+        val profesoresFlow = getProfesoresUseCase()
 
-                // Cargar profesores
-                getProfesoresUseCase().collect { profesores ->
-                    _state.update { state ->
-                        state.copy(
-                            profesores = profesores,
-                            isLoading = false
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Error al cargar datos: ${e.message}"
-                    )
-                }
+        combine(materiasFlow, profesoresFlow) { materias, profesores ->
+            Pair(materias, profesores)
+        }.onEach { (materias, profesores) ->
+            _state.update {
+                it.copy(
+                    materias = materias,
+                    profesores = profesores,
+                    isLoading = false
+                )
             }
-        }
+        }.catch { e ->
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Error al cargar datos: ${e.message}"
+                )
+            }
+        }.launchIn(viewModelScope)
     }
 
     private fun guardarHorario() {

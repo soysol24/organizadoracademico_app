@@ -5,6 +5,7 @@ import com.example.organizadoracademico.domain.model.Imagen
 data class DetalleImagenState(
     val isLoading: Boolean = true,
     val imagen: Imagen? = null,
+    val nombreMateria: String = "", // <-- CAMPO AÑADIDO
     val nota: String = "",
     val isEditando: Boolean = false,
     val eliminado: Boolean = false,

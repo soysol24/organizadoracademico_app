@@ -6,10 +6,7 @@ import com.example.organizadoracademico.domain.model.Imagen
 import com.example.organizadoracademico.domain.usercase.imagen.DeleteImagenUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenesPorMateriaUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -34,51 +31,44 @@ class GaleriaViewModel(
     }
 
     private fun cargarImagenes(materiaId: Int) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+        _state.update { it.copy(isLoading = true) }
 
-            try {
-                // Cargar información de la materia
-                getMateriasUseCase().collect { materias ->
-                    val materia = materias.find { it.id == materiaId }
-                    _state.update { state ->
-                        state.copy(materia = materia)
-                    }
-                }
-
-                // Cargar imágenes de la materia
-                getImagenesPorMateriaUseCase(materiaId).collect { imagenes ->
-                    val agrupadas = agruparImagenesPorFecha(imagenes)
-                    _state.update {
-                        it.copy(
-                            imagenes = imagenes,
-                            imagenesAgrupadas = agrupadas,
-                            isLoading = false
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Error al cargar imágenes: ${e.message}"
-                    )
-                }
-            }
+        val materiaInfoFlow = getMateriasUseCase().map { materias ->
+            materias.find { it.id == materiaId }
         }
+
+        val imagenesFlow = getImagenesPorMateriaUseCase(materiaId)
+
+        combine(materiaInfoFlow, imagenesFlow) { materia, imagenes ->
+            Pair(materia, imagenes)
+        }.onEach { (materia, imagenes) ->
+            val agrupadas = agruparImagenesPorFecha(imagenes)
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    materia = materia,
+                    imagenes = imagenes,
+                    imagenesAgrupadas = agrupadas
+                )
+            }
+        }.catch { e ->
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Error al cargar imágenes: ${e.message}"
+                )
+            }
+        }.launchIn(viewModelScope)
     }
 
     private fun eliminarImagen(imagenId: Int) {
         viewModelScope.launch {
-            val result = deleteImagenUseCase.invoke(imagenId)
-
-            result.onSuccess {
-                // La imagen se eliminará de la lista cuando se recargue
-            }.onFailure { exception ->
+            try {
+                deleteImagenUseCase(imagenId)
+                // La UI se actualizará automáticamente gracias al Flow
+            } catch (e: Exception) {
                 _state.update {
-                    it.copy(
-                        errorMessage = exception.message ?: "Error al eliminar imagen"
-                    )
+                    it.copy(errorMessage = e.message ?: "Error al eliminar imagen")
                 }
             }
         }
@@ -89,10 +79,5 @@ class GaleriaViewModel(
         return imagenes.groupBy { imagen ->
             dateFormat.format(Date(imagen.fecha))
         }.toSortedMap(reverseOrder())
-    }
-
-    fun getFechaFormateada(fecha: Long): String {
-        val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("es"))
-        return dateFormat.format(Date(fecha))
     }
 }

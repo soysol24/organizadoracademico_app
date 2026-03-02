@@ -9,8 +9,13 @@ import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCa
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
 class MisMateriasViewModel(
@@ -21,15 +26,13 @@ class MisMateriasViewModel(
     private val _state = MutableStateFlow(MisMateriasState())
     val state: StateFlow<MisMateriasState> = _state.asStateFlow()
 
-    private val imagenesMap = mutableMapOf<Int, List<Imagen>>()
-
     init {
-        cargarMaterias()
+        cargarDatos()
     }
 
     fun onEvent(event: MisMateriasEvent) {
         when (event) {
-            is MisMateriasEvent.CargarMaterias -> cargarMaterias()
+            is MisMateriasEvent.CargarMaterias -> cargarDatos()
             is MisMateriasEvent.SearchQueryChanged -> {
                 _state.update { it.copy(searchQuery = event.query) }
             }
@@ -39,48 +42,43 @@ class MisMateriasViewModel(
         }
     }
 
-    private fun cargarMaterias() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+    private fun cargarDatos() {
+        _state.update { it.copy(isLoading = true) }
 
-            try {
-                getMateriasUseCase().collect { materias ->
-                    _state.update {
-                        it.copy(
-                            materias = materias,
-                            isLoading = false
-                        )
+        getMateriasUseCase()
+            .flatMapLatest { materias ->
+                if (materias.isEmpty()) {
+                    flow { emit(Pair(emptyList<Materia>(), emptyMap<Int, List<Imagen>>())) }
+                } else {
+                    val imageFlows = materias.map {
+                        getImagenesPorMateriaUseCase(it.id)
                     }
-
-                    // Cargar imágenes para cada materia
-                    materias.forEach { materia ->
-                        cargarImagenesPorMateria(materia.id)
+                    combine(imageFlows) { imagesArray ->
+                        val imagesMap = materias.zip(imagesArray.toList()).associate {
+                            (materia, images) -> materia.id to images
+                        }
+                        Pair(materias, imagesMap)
                     }
                 }
-            } catch (e: Exception) {
+            }
+            .onEach { (materias, imagesMap) ->
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "Error al cargar materias: ${e.message}"
+                        materias = materias,
+                        imagenesPorMateria = imagesMap
                     )
                 }
             }
-        }
-    }
-
-    private fun cargarImagenesPorMateria(materiaId: Int) {
-        viewModelScope.launch {
-            try {
-                getImagenesPorMateriaUseCase(materiaId).collect { imagenes ->
-                    imagenesMap[materiaId] = imagenes
-                    _state.update {
-                        it.copy(imagenesPorMateria = imagenesMap.toMap())
-                    }
+            .catch { e ->
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Error al cargar datos: ${e.message}"
+                    )
                 }
-            } catch (e: Exception) {
-                // Silencioso, no mostrar error por ahora
             }
-        }
+            .launchIn(viewModelScope)
     }
 
     fun getMateriasFiltradas(): List<Materia> {

@@ -23,90 +23,43 @@ class NotaViewModel(
     fun onEvent(event: NotaEvent) {
         when (event) {
             is NotaEvent.Inicializar -> {
-                _state.update {
-                    it.copy(
-                        materiaId = event.materiaId,
-                        imageUri = event.imageUri
-                    )
-                }
+                _state.update { it.copy(materiaId = event.materiaId, imageUri = event.imageUri) }
             }
             is NotaEvent.NotaCambio -> {
-                val nota = event.nota.take(500) // Limitar a 500 caracteres
-                _state.update {
-                    it.copy(
-                        nota = nota,
-                        caracteresRestantes = 500 - nota.length
-                    )
+                if (event.nota.length <= NotaState.MAX_CHARS) {
+                    _state.update { it.copy(nota = event.nota) }
                 }
             }
-            is NotaEvent.GuardarNota -> {
-                guardarNota()
-            }
-            is NotaEvent.SaltarNota -> {
-                guardarNota(saltar = true)
-            }
-            is NotaEvent.ResetError -> {
-                _state.update { it.copy(errorMessage = null) }
-            }
+            is NotaEvent.GuardarNota -> guardarNota(saltar = false)
+            is NotaEvent.SaltarNota -> guardarNota(saltar = true)
+            is NotaEvent.ResetError -> _state.update { it.copy(errorMessage = null) }
         }
     }
 
     private fun guardarNota(saltar: Boolean = false) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
-
-            val notaTexto = if (saltar) null else _state.value.nota
-
             try {
-                // Primero guardar la imagen en la galería
-                imageSaver.saveImageToGallery(
+                val savedUri = imageSaver.saveImageToGallery(
                     imagePath = _state.value.imageUri,
-                    materiaNombre = "Materia_${_state.value.materiaId}",
-                    onSuccess = { savedUri ->
-                        // Luego guardar en la base de datos
-                        viewModelScope.launch {
-                            val result = saveImagenConNotaUseCase.invoke(
-                                materiaId = _state.value.materiaId,
-                                uri = savedUri,
-                                nota = notaTexto
-                            )
-
-                            result.onSuccess {
-                                vibratorManager.vibrateSuccess()
-                                _state.update {
-                                    it.copy(
-                                        isLoading = false,
-                                        isSaved = true,
-                                        errorMessage = null
-                                    )
-                                }
-                            }.onFailure { exception ->
-                                vibratorManager.vibrateError()
-                                _state.update {
-                                    it.copy(
-                                        isLoading = false,
-                                        errorMessage = "Error al guardar: ${exception.message}"
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    onError = { error ->
-                        vibratorManager.vibrateError()
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = error
-                            )
-                        }
-                    }
+                    materiaNombre = "Materia_${_state.value.materiaId}"
                 )
+
+                val notaTexto = if (saltar) null else _state.value.nota
+                
+                // Llamada directa a la función suspend
+                saveImagenConNotaUseCase(materiaId = _state.value.materiaId, uri = savedUri, nota = notaTexto)
+
+                // Si llegamos aquí, todo ha ido bien
+                vibratorManager.vibrateSuccess()
+                _state.update { it.copy(isLoading = false, isSaved = true) } // ¡Éxito!
+
             } catch (e: Exception) {
                 vibratorManager.vibrateError()
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "Error inesperado: ${e.message}"
+                        errorMessage = e.message ?: "Error desconocido"
                     )
                 }
             }
