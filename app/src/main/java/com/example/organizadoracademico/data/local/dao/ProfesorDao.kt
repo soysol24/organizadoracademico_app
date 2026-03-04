@@ -13,4 +13,11 @@ interface ProfesorDao {
 
     @Insert
     suspend fun insert(profesor: ProfesorEntity)
+
+    @Query("SELECT * FROM profesores LIMIT 1") // O la tabla que corresponda
+    suspend fun getAllStatic(): List<ProfesorEntity>
+
+    @Query("SELECT COUNT(*) FROM profesores")
+    suspend fun getCount(): Int
+
 }

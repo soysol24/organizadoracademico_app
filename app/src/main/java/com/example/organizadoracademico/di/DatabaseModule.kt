@@ -10,11 +10,7 @@ import org.koin.dsl.module
 val databaseModule = module {
 
     single<AppDatabase> {
-        Room.databaseBuilder(
-            androidContext(),
-            AppDatabase::class.java,
-            "organizador_academico.db"
-        ).build()
+        AppDatabase.getInstance(androidContext())
     }
 
     single<MateriaDao> { get<AppDatabase>().materiaDao() }

@@ -1,5 +1,6 @@
 package com.example.organizadoracademico.di
 
+import com.example.organizadoracademico.data.local.database.AppDatabase
 import com.example.organizadoracademico.data.repository.*
 import com.example.organizadoracademico.domain.repository.*
 import com.example.organizadoracademico.domain.usercase.horario.*
@@ -26,8 +27,13 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
-    single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
+    single { AppDatabase.getInstance(get()) }
+
+    // Registramos los repositorios
+    single<IMateriaRepository> { MateriaRepositoryImpl(get(), get(), get()) }
+
+    // CORRECCIÓN AQUÍ: Agregamos el tercer get() para la base de datos (db)
+    single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get(), get()) }
     single<IHorarioRepository> { HorarioRepositoryImpl(get(), get()) }
     single<IImagenRepository> { ImagenRepositoryImpl(get(), get()) }
     single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get()) }
