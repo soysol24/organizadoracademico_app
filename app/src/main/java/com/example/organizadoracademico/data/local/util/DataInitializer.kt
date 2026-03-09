@@ -9,8 +9,8 @@ import kotlinx.coroutines.withContext
 class DataInitializer(private val db: AppDatabase) {
 
     suspend fun populateIfEmpty() = withContext(Dispatchers.IO) {
-        // Si no hay profesores, insertamos todo
-        if (db.profesorDao().getCount() == 0) {
+        // Usamos el conteo general, sin filtrar por usuario
+        if (db.materiaDao().getCountGlobal() == 0) {
 
             val profesores = listOf(
                 ProfesorEntity(nombre = "Dr. Carlos"),

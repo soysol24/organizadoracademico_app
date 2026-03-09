@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HorarioDao {
-    @Query("SELECT * FROM horarios ORDER BY dia, horaInicio ASC")
-    fun getAll(): Flow<List<HorarioEntity>>
+    @Query("SELECT * FROM horarios WHERE usuarioId = :userId ORDER BY dia, horaInicio ASC")
+    fun getAllByUsuario(userId: Int): Flow<List<HorarioEntity>>
 
     @Insert
     suspend fun insert(horario: HorarioEntity)

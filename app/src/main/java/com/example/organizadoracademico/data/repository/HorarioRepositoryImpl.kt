@@ -14,8 +14,11 @@ class HorarioRepositoryImpl(
     private val remoteService: HorarioFirestoreService
 ) : IHorarioRepository {
 
-    override fun getAllHorarios(): Flow<List<Horario>> =
-        dao.getAll().map { entities -> entities.map { it.toDomain() } }
+    // Ahora pide el userId para filtrar
+    override fun getAllHorarios(userId: Int): Flow<List<Horario>> =
+        dao.getAllByUsuario(userId).map { entities ->
+            entities.map { it.toDomain() }
+        }
 
     override suspend fun insertHorario(horario: Horario) {
         dao.insert(horario.toEntity())

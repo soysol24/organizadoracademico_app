@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.organizadoracademico.presentation.navigation.Screen
 import com.example.organizadoracademico.presentation.theme.*
 import org.koin.androidx.compose.koinViewModel
 import java.net.URLDecoder
@@ -47,7 +48,9 @@ fun NotaScreen(
 
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) {
-            navController.popBackStack()
+            navController.navigate(Screen.Galeria.passMateriaId(materiaId)) {
+                popUpTo(Screen.Camara.route) { inclusive = true }
+            }
         }
     }
 

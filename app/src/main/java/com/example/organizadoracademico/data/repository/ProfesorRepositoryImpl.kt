@@ -12,20 +12,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch // No olvides esta importación
+import kotlinx.coroutines.launch
 
 class ProfesorRepositoryImpl(
     private val dao: ProfesorDao,
-    private val remoteService: ProfesorFirestoreService, // Se agregó la coma aquí
+    private val remoteService: ProfesorFirestoreService,
     private val db: AppDatabase
 ) : IProfesorRepository {
 
     override fun getAllProfesores(): Flow<List<Profesor>> {
-        // Ejecutamos la carga inicial en segundo plano
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // Verificamos si la tabla está vacía
                 if (dao.getCount() == 0) {
-                    // Activamos la carga forzada
                     DataInitializer(db).populateIfEmpty()
                 }
             } catch (e: Exception) {
@@ -33,7 +32,6 @@ class ProfesorRepositoryImpl(
             }
         }
 
-        // Retornamos el Flow que observará los cambios
         return dao.getAll().map { entities ->
             entities.map { it.toDomain() }
         }

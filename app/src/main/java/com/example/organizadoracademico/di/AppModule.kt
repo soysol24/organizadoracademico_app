@@ -27,12 +27,29 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val repositoryModule = module {
+    // 1. Provee la instancia de Firebase Firestore (fundamental)
+    single { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
+
+    // 2. Base de datos y Sesión
     single { AppDatabase.getInstance(get()) }
+    single { com.example.organizadoracademico.data.local.util.SessionManager(get()) }
 
-    // Registramos los repositorios
+    // 3. Servicios Remotos (Ahora con get() para inyectar Firestore)
+    single { com.example.organizadoracademico.data.remote.MateriaFirestoreService(get()) }
+    single { com.example.organizadoracademico.data.remote.ProfesorFirestoreService(get()) }
+    single { com.example.organizadoracademico.data.remote.HorarioFirestoreService(get()) }
+    single { com.example.organizadoracademico.data.remote.ImagenFirestoreService(get()) }
+    single { com.example.organizadoracademico.data.remote.UsuarioFirestoreService(get()) }
+
+    // ... resto de tus DAOs y Repositorios
+    single { get<AppDatabase>().materiaDao() }
+    single { get<AppDatabase>().profesorDao() }
+    single { get<AppDatabase>().horarioDao() }
+    single { get<AppDatabase>().imagenDao() }
+    single { get<AppDatabase>().usuarioDao() }
+
+    // REPOSITORIOS
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get(), get()) }
-
-    // CORRECCIÓN AQUÍ: Agregamos el tercer get() para la base de datos (db)
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get(), get()) }
     single<IHorarioRepository> { HorarioRepositoryImpl(get(), get()) }
     single<IImagenRepository> { ImagenRepositoryImpl(get(), get()) }
@@ -40,101 +57,52 @@ val repositoryModule = module {
 }
 
 val useCaseModule = module {
-    // Horario
-    factory { GetHorariosUseCase(get<IHorarioRepository>()) }
-    factory { AddHorarioUseCase(get<IHorarioRepository>()) }
-    factory { DeleteHorarioUseCase(get<IHorarioRepository>()) }
-
-    // Materia
-    factory { GetMateriasUseCase(get<IMateriaRepository>()) }
-    factory { AddMateriaUseCase(get<IMateriaRepository>()) }
-
-    // Profesor
-    factory { GetProfesoresUseCase(get<IProfesorRepository>()) }
-
-    // Imagen
-    factory { GetImagenesPorMateriaUseCase(get<IImagenRepository>()) }
-    factory { GetImagenUseCase(get<IImagenRepository>()) }
-    factory { SaveImagenConNotaUseCase(get<IImagenRepository>()) }
-    factory { UpdateNotaUseCase(get<IImagenRepository>()) }
-    factory { DeleteImagenUseCase(get<IImagenRepository>()) }
-
-    // Usuario
-    factory { LoginUseCase(get<IUsuarioRepository>()) }
-    factory { RegistroUseCase(get<IUsuarioRepository>()) }
-    factory { GetUsuarioUseCase(get<IUsuarioRepository>()) }
+    // ... (Tus UseCases están perfectos como los pusiste)
+    factory { GetHorariosUseCase(get()) }
+    factory { AddHorarioUseCase(get()) }
+    factory { DeleteHorarioUseCase(get()) }
+    factory { GetMateriasUseCase(get()) }
+    factory { AddMateriaUseCase(get()) }
+    factory { GetProfesoresUseCase(get()) }
+    factory { GetImagenesPorMateriaUseCase(get()) }
+    factory { GetImagenUseCase(get()) }
+    factory { SaveImagenConNotaUseCase(get()) }
+    factory { UpdateNotaUseCase(get()) }
+    factory { DeleteImagenUseCase(get()) }
+    factory { LoginUseCase(get()) }
+    factory { RegistroUseCase(get()) }
+    factory { GetUsuarioUseCase(get()) }
     factory { LogoutUseCase() }
 }
 
 val viewModelModule = module {
-    viewModel { LoginViewModel(loginUseCase = get()) }
+    viewModel { LoginViewModel(get(), get()) }
     viewModel { RegistroViewModel(get()) }
     viewModel { MainViewModel(get()) }
 
     viewModel {
-        CrearHorarioViewModel(
-            getMateriasUseCase = get(),
-            getProfesoresUseCase = get(),
-            addHorarioUseCase = get()
-        )
-    }
-
-    viewModel {
-        VerHorarioViewModel(
-            getHorariosUseCase = get(),
-            getMateriasUseCase = get(),
-            getProfesoresUseCase = get(),
-            deleteHorarioUseCase = get()
-        )
-    }
-
-    viewModel {
         MisMateriasViewModel(
             getMateriasUseCase = get(),
-            getImagenesPorMateriaUseCase = get()
-        )
-    }
-
-    viewModel {
-        GaleriaViewModel(
             getImagenesPorMateriaUseCase = get(),
-            getMateriasUseCase = get(),
-            deleteImagenUseCase = get()
+            sessionManager = get()
         )
     }
 
+    // VerHorarioViewModel ahora pide 5 cosas:
+    // 4 UseCases + SessionManager
     viewModel {
-        CamaraViewModel(
-            imageSaver = get()
-        )
+        VerHorarioViewModel(get(), get(), get(), get(), get())
     }
 
-    viewModel {
-        NotaViewModel(
-            saveImagenConNotaUseCase = get(),
-            imageSaver = get(),
-            vibratorManager = get()
-        )
-    }
+    // Asegúrate de que CrearHorarioViewModel también tenga los get() necesarios
+    viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
 
-    viewModel {
-        PerfilViewModel(
-            getUsuarioUseCase = get(),
-            logoutUseCase = get(),
-            getMateriasUseCase = get(),
-            getHorariosUseCase = get(),
-            getImagenesPorMateriaUseCase = get(),
-            vibratorManager = get()
-        )
-    }
+    viewModel { GaleriaViewModel(get(), get(), get(), get())}
+    viewModel { CamaraViewModel(get()) }
+    viewModel { NotaViewModel(get(), get(), get()) }
 
-    viewModel {
-        DetalleImagenViewModel(
-            getImagenUseCase = get(),
-            updateNotaUseCase = get(),
-            deleteImagenUseCase = get(),
-            getMateriasUseCase = get(),
-            vibratorManager = get()
-        )
-    }
+    // PerfilViewModel suele necesitar el SessionManager para mostrar los datos del usuario actual
+    viewModel { PerfilViewModel(get(), get(), get(), get(), get(), get(), get()) }
+
+    viewModel { DetalleImagenViewModel(get(), get(), get(), get(), get()) }
 }

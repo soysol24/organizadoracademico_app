@@ -12,5 +12,6 @@ data class MateriaEntity(
     val icono: String? = null
 )
 
+// OJO: También debes quitar el usuarioId de tu modelo de dominio (Materia)
 fun MateriaEntity.toDomain(): Materia = Materia(id, nombre, color, icono)
 fun Materia.toEntity(): MateriaEntity = MateriaEntity(id, nombre, color, icono)

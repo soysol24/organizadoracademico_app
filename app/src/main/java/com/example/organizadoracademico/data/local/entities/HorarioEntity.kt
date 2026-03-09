@@ -19,11 +19,19 @@ import com.example.organizadoracademico.domain.model.Horario
             parentColumns = ["id"],
             childColumns = ["profesorId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        // --- NUEVA LLAVE FORÁNEA ---
+        ForeignKey(
+            entity = UsuarioEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["usuarioId"],
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
 data class HorarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val usuarioId: Int, // <-- AÑADIDO: Ahora el DAO podrá encontrarlo
     val materiaId: Int,
     val profesorId: Int,
     val dia: String,
@@ -32,5 +40,10 @@ data class HorarioEntity(
     val color: String
 )
 
-fun HorarioEntity.toDomain(): Horario = Horario(id, materiaId, profesorId, dia, horaInicio, horaFin, color)
-fun Horario.toEntity(): HorarioEntity = HorarioEntity(id, materiaId, profesorId, dia, horaInicio, horaFin, color)
+// Mapeadores corregidos
+fun HorarioEntity.toDomain(): Horario = Horario(
+    id, usuarioId, materiaId, profesorId, dia, horaInicio, horaFin, color
+)
+fun Horario.toEntity(): HorarioEntity = HorarioEntity(
+    id, usuarioId, materiaId, profesorId, dia, horaInicio, horaFin, color
+)

@@ -2,6 +2,7 @@ package com.example.organizadoracademico.presentation.perfil
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.domain.usercase.usuario.GetUsuarioUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.LogoutUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
@@ -11,6 +12,7 @@ import com.example.organizadoracademico.hardware.vibration.VibratorManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -20,11 +22,15 @@ class PerfilViewModel(
     private val getMateriasUseCase: GetMateriasUseCase,
     private val getHorariosUseCase: GetHorariosUseCase,
     private val getImagenesPorMateriaUseCase: GetImagenesPorMateriaUseCase,
-    private val vibratorManager: VibratorManager
+    private val vibratorManager: VibratorManager,
+    private val sessionManager: SessionManager // Inyectado vía Koin
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PerfilState())
     val state: StateFlow<PerfilState> = _state.asStateFlow()
+
+    // Obtenemos el ID real del usuario desde la sesión
+    private val userId = sessionManager.getUserId()
 
     init {
         cargarPerfil()
@@ -35,18 +41,13 @@ class PerfilViewModel(
             is PerfilEvent.CargarPerfil -> cargarPerfil()
             is PerfilEvent.ToggleVibracion -> {
                 _state.update { it.copy(vibracionActivada = event.activada) }
-                if (event.activada) {
-                    vibratorManager.vibrateClick()
-                }
-                // Aquí guardarías la preferencia en DataStore
+                if (event.activada) vibratorManager.vibrateClick()
             }
             is PerfilEvent.ToggleSonido -> {
                 _state.update { it.copy(sonidoActivado = event.activado) }
-                // Aquí guardarías la preferencia en DataStore
             }
             is PerfilEvent.ToggleNotificaciones -> {
                 _state.update { it.copy(notificacionesActivadas = event.activadas) }
-                // Aquí guardarías la preferencia en DataStore
             }
             is PerfilEvent.CerrarSesion -> cerrarSesion()
             is PerfilEvent.ResetError -> {
@@ -60,32 +61,29 @@ class PerfilViewModel(
             _state.update { it.copy(isLoading = true) }
 
             try {
-                // Cargar usuario (por defecto ID 1)
-                val usuarioResult = getUsuarioUseCase.invoke(1)
+                // 1. Cargamos los datos del usuario logueado
+                val usuarioResult = getUsuarioUseCase.invoke(userId)
+
                 usuarioResult.onSuccess { usuario ->
+                    // 2. Contar materias (Globales)
+                    val materias = getMateriasUseCase().first()
 
-                    // Contar materias
-                    var totalMaterias = 0
-                    getMateriasUseCase().collect { materias ->
-                        totalMaterias = materias.size
+                    // 3. Contar horarios (Privados del usuario)
+                    val horarios = getHorariosUseCase(userId).first()
+
+                    // 4. Contar total de imágenes (Sumando fotos de cada materia del usuario)
+                    var totalFotos = 0
+                    materias.forEach { materia ->
+                        val fotos = getImagenesPorMateriaUseCase(materia.id, userId).first()
+                        totalFotos += fotos.size
                     }
-
-                    // Contar horarios
-                    var totalHorarios = 0
-                    getHorariosUseCase().collect { horarios ->
-                        totalHorarios = horarios.size
-                    }
-
-                    // Contar imágenes (simplificado)
-                    var totalImagenes = 0
-                    // Por ahora lo dejamos en 0
 
                     _state.update {
                         it.copy(
                             usuario = usuario,
-                            totalMaterias = totalMaterias,
-                            totalHorarios = totalHorarios,
-                            totalImagenes = totalImagenes,
+                            totalMaterias = materias.size,
+                            totalHorarios = horarios.size,
+                            totalImagenes = totalFotos,
                             isLoading = false
                         )
                     }
@@ -93,7 +91,7 @@ class PerfilViewModel(
                     _state.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = "Error al cargar perfil: ${exception.message}"
+                            errorMessage = "Error al cargar datos de usuario: ${exception.message}"
                         )
                     }
                 }
@@ -116,8 +114,8 @@ class PerfilViewModel(
 
             result.onSuccess {
                 vibratorManager.vibrateSuccess()
+                // SessionManager.clear() ya debería ser llamado dentro del LogoutUseCase
                 _state.update { it.copy(isLoggingOut = false) }
-                // La navegación se maneja en la UI
             }.onFailure { exception ->
                 vibratorManager.vibrateError()
                 _state.update {

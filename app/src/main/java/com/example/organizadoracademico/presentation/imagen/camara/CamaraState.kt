@@ -8,6 +8,7 @@ data class CamaraState(
     val photoSaved: Boolean = false,
     val hasCameraPermission: Boolean = false,
     val isInitialized: Boolean = false
+
 )
 
 sealed class CamaraEvent {
@@ -21,4 +22,6 @@ sealed class CamaraEvent {
     object ContinuarConNota : CamaraEvent()
     object DescartarFoto : CamaraEvent()
     object ResetError : CamaraEvent()
+    object ResetNavegacion : CamaraEvent()
+    object LimpiarTodo : CamaraEvent()
 }

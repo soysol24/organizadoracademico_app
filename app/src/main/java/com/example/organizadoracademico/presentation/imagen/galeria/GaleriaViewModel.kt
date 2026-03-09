@@ -2,6 +2,7 @@ package com.example.organizadoracademico.presentation.imagen.galeria
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.organizadoracademico.data.local.util.SessionManager // <-- Importamos
 import com.example.organizadoracademico.domain.model.Imagen
 import com.example.organizadoracademico.domain.usercase.imagen.DeleteImagenUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenesPorMateriaUseCase
@@ -14,11 +15,15 @@ import java.util.*
 class GaleriaViewModel(
     private val getImagenesPorMateriaUseCase: GetImagenesPorMateriaUseCase,
     private val getMateriasUseCase: GetMateriasUseCase,
-    private val deleteImagenUseCase: DeleteImagenUseCase
+    private val deleteImagenUseCase: DeleteImagenUseCase,
+    private val sessionManager: SessionManager // <-- 1. Inyectamos
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GaleriaState())
     val state: StateFlow<GaleriaState> = _state.asStateFlow()
+
+    // 2. Obtenemos el ID del usuario actual
+    private val userId = sessionManager.getUserId()
 
     fun onEvent(event: GaleriaEvent) {
         when (event) {
@@ -37,7 +42,8 @@ class GaleriaViewModel(
             materias.find { it.id == materiaId }
         }
 
-        val imagenesFlow = getImagenesPorMateriaUseCase(materiaId)
+        // 3. Pasamos el userId al caso de uso para filtrar la galería
+        val imagenesFlow = getImagenesPorMateriaUseCase(materiaId, userId)
 
         combine(materiaInfoFlow, imagenesFlow) { materia, imagenes ->
             Pair(materia, imagenes)
@@ -61,11 +67,11 @@ class GaleriaViewModel(
         }.launchIn(viewModelScope)
     }
 
+    // ... (eliminarImagen y agruparImagenesPorFecha se mantienen igual)
     private fun eliminarImagen(imagenId: Int) {
         viewModelScope.launch {
             try {
                 deleteImagenUseCase(imagenId)
-                // La UI se actualizará automáticamente gracias al Flow
             } catch (e: Exception) {
                 _state.update {
                     it.copy(errorMessage = e.message ?: "Error al eliminar imagen")

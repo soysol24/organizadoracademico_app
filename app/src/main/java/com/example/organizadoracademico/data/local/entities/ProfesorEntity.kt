@@ -10,5 +10,6 @@ data class ProfesorEntity(
     val nombre: String
 )
 
+// OJO: También debes quitar el usuarioId de tu modelo de dominio (Profesor)
 fun ProfesorEntity.toDomain(): Profesor = Profesor(id, nombre)
 fun Profesor.toEntity(): ProfesorEntity = ProfesorEntity(id, nombre)

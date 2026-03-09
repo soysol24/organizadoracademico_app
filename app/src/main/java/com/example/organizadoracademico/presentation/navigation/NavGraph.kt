@@ -20,18 +20,23 @@ import com.example.organizadoracademico.presentation.registro.RegistroScreen
 import com.example.organizadoracademico.presentation.imagen.detalle.DetalleImagenScreen
 
 @Composable
-fun NavGraph() {
+fun NavGraph(
+    isLoggedIn: Boolean = false
+) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route,
+        // Decidimos el punto de entrada: Login o Main
+        startDestination = if (isLoggedIn) Screen.Main.route else Screen.Login.route,
         modifier = Modifier
     ) {
+        // --- FLUJO DE AUTENTICACIÓN ---
         composable(route = Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(Screen.Main.route) {
+                        // Al entrar al Main, borramos el Login del historial
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -39,16 +44,25 @@ fun NavGraph() {
             )
         }
 
-        composable(route = Screen.Registro.route) {  // <-- Cuando alguien va a "registro"
-            RegistroScreen(                          // <-- Muestra esta pantalla
-                navController = navController
-            )
+        composable(route = Screen.Registro.route) {
+            RegistroScreen(navController = navController)
         }
 
+        // --- PANTALLAS PRINCIPALES ---
         composable(route = Screen.Main.route) {
             MainScreen(navController = navController)
         }
 
+        composable(route = Screen.MisMaterias.route) {
+            MisMateriasScreen(navController = navController)
+        }
+
+        composable(route = Screen.Perfil.route) {
+            // Quitamos el parámetro onLogout para mantener la sesión siempre activa
+            PerfilScreen(navController = navController)
+        }
+
+        // --- GESTIÓN DE HORARIOS ---
         composable(route = Screen.CrearHorario.route) {
             CrearHorarioScreen(navController = navController)
         }
@@ -57,14 +71,7 @@ fun NavGraph() {
             VerHorarioScreen(navController = navController)
         }
 
-        composable(route = Screen.MisMaterias.route) {
-            MisMateriasScreen(navController = navController)
-        }
-
-        composable(route = Screen.Perfil.route) {
-            PerfilScreen(navController = navController)
-        }
-
+        // --- GALERÍA Y CÁMARA (Con paso de parámetros) ---
         composable(
             route = Screen.Galeria.route,
             arguments = listOf(navArgument("materiaId") { type = NavType.IntType })
@@ -87,6 +94,7 @@ fun NavGraph() {
             )
         }
 
+        // --- NOTAS Y DETALLES ---
         composable(
             route = Screen.Nota.route,
             arguments = listOf(

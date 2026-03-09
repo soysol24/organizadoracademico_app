@@ -14,8 +14,11 @@ class ImagenRepositoryImpl(
     private val remoteService: ImagenFirestoreService
 ) : IImagenRepository {
 
-    override fun getImagenesByMateria(materiaId: Int): Flow<List<Imagen>> =
-        dao.getByMateria(materiaId).map { entities -> entities.map { it.toDomain() } }
+    // Pasamos el userId al DAO para filtrar correctamente
+    override fun getImagenesByMateria(materiaId: Int, userId: Int): Flow<List<Imagen>> =
+        dao.getByMateria(materiaId, userId).map { entities ->
+            entities.map { it.toDomain() }
+        }
 
     override suspend fun getImagenById(id: Int): Imagen? {
         return dao.getById(id)?.toDomain()
@@ -32,7 +35,6 @@ class ImagenRepositoryImpl(
 
     override suspend fun updateNota(id: Int, nota: String) {
         dao.updateNota(id, nota)
-        // Opcionalmente actualizar remoto si lo deseas
     }
 
     override suspend fun toggleFavorita(id: Int, favorita: Boolean) {

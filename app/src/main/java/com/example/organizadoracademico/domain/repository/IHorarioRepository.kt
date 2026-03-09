@@ -4,7 +4,9 @@ import com.example.organizadoracademico.domain.model.Horario
 import kotlinx.coroutines.flow.Flow
 
 interface IHorarioRepository {
-    fun getAllHorarios(): Flow<List<Horario>>
+    // ACTUALIZADO: Ahora pide el userId
+    fun getAllHorarios(userId: Int): Flow<List<Horario>>
+
     suspend fun insertHorario(horario: Horario)
     suspend fun deleteHorario(id: Int)
 }

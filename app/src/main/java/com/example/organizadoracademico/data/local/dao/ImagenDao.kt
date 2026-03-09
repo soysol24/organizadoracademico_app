@@ -9,8 +9,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ImagenDao {
-    @Query("SELECT * FROM imagenes WHERE materiaId = :materiaId ORDER BY fecha DESC")
-    fun getByMateria(materiaId: Int): Flow<List<ImagenEntity>>
+    // 1. Filtramos por materia Y por usuario para máxima seguridad
+    @Query("SELECT * FROM imagenes WHERE materiaId = :materiaId AND usuarioId = :userId ORDER BY fecha DESC")
+    fun getByMateria(materiaId: Int, userId: Int): Flow<List<ImagenEntity>>
+
+    // 2. Nueva función: ¿Quieres ver TODAS las fotos de un usuario sin importar la materia?
+    @Query("SELECT * FROM imagenes WHERE usuarioId = :userId ORDER BY fecha DESC")
+    fun getAllByUsuario(userId: Int): Flow<List<ImagenEntity>>
 
     @Query("SELECT * FROM imagenes WHERE id = :id")
     suspend fun getById(id: Int): ImagenEntity?

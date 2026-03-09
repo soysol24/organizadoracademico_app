@@ -34,7 +34,6 @@ fun CamaraScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    // Usamos remember para que el CameraManager persista durante recomposiciones
     val cameraManager = remember { CameraManager(context) }
 
     var hasPermission by remember { mutableStateOf(
@@ -43,28 +42,32 @@ fun CamaraScreen(
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted ->
-            hasPermission = granted
-        }
+        onResult = { granted -> hasPermission = granted }
     )
 
-    // Se ejecuta una sola vez para inicializar el ViewModel y pedir permisos
+    // MODIFICACIÓN 1: Limpiamos todo al entrar para que no se vea la foto anterior
     LaunchedEffect(Unit) {
+        viewModel.onEvent(CamaraEvent.LimpiarTodo) // <-- Limpia estados viejos
         viewModel.onEvent(CamaraEvent.Inicializar(materiaId))
         if (!hasPermission) {
             launcher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    // Efecto para navegar cuando la foto se marca como "guardada"
+    // Efecto para navegar
     LaunchedEffect(state.photoSaved) {
-        if (state.photoSaved && state.lastPhotoUri != null) {
+        if (state.photoSaved && !state.lastPhotoUri.isNullOrBlank()) {
             try {
-                // Se encodifica la URI para que sea seguro pasarla como argumento de navegación
                 val encodedUri = URLEncoder.encode(state.lastPhotoUri, StandardCharsets.UTF_8.toString())
                 navController.navigate(Screen.Nota.passParams(materiaId, encodedUri))
+
+                // IMPORTANTE: ResetNavegacion ahora NO borra la foto,
+                // así que no habrá parpadeo mientras cambia la pantalla.
+                viewModel.onEvent(CamaraEvent.ResetNavegacion)
+
             } catch (e: Exception) {
-                viewModel.onEvent(CamaraEvent.ResetError) // Manejar error de navegación
+                viewModel.onEvent(CamaraEvent.ResetError)
+                viewModel.onEvent(CamaraEvent.ResetNavegacion)
             }
         }
     }
@@ -75,19 +78,24 @@ fun CamaraScreen(
             .background(FondoPrincipal)
     ) {
         if (hasPermission) {
-            if (state.lastPhotoUri == null) {
-                // Vista de la cámara activa
+            // MODIFICACIÓN 2: Cambiamos la lógica del IF
+            // Si hay una foto capturada, mostramos el Preview.
+            // Si NO hay foto (null), mostramos la cámara activa.
+            if (state.lastPhotoUri != null) {
+                PhotoPreview(viewModel)
+            } else {
                 cameraManager.CameraPreview(
                     onImageCaptured = { uri -> viewModel.onEvent(CamaraEvent.FotoTomada(uri)) },
                     onError = { viewModel.onEvent(CamaraEvent.ResetError) }
                 )
 
-                // Botón para tomar la foto
                 Button(
-                    onClick = { cameraManager.takePhoto(
-                        onSuccess = { uri -> viewModel.onEvent(CamaraEvent.FotoTomada(uri)) },
-                        onError = { viewModel.onEvent(CamaraEvent.ResetError) }
-                    ) },
+                    onClick = {
+                        cameraManager.takePhoto(
+                            onSuccess = { uri -> viewModel.onEvent(CamaraEvent.FotoTomada(uri)) },
+                            onError = { viewModel.onEvent(CamaraEvent.ResetError) }
+                        )
+                    },
                     enabled = !state.isTakingPhoto,
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = MoradoNeon),
@@ -99,17 +107,12 @@ fun CamaraScreen(
                 ) {
                     Text("📷", fontSize = 32.sp)
                 }
-
-            } else {
-                // Vista previa de la foto tomada
-                PhotoPreview(viewModel)
             }
         } else {
-            // Vista de permiso denegado
             PermissionDeniedView(navController)
         }
 
-        // Botón de cerrar (siempre visible)
+        // Botón de cerrar
         IconButton(
             onClick = { navController.popBackStack() },
             modifier = Modifier
@@ -120,10 +123,6 @@ fun CamaraScreen(
                 .background(SuperficieCards.copy(alpha = 0.8f))
         ) {
             Text("←", fontSize = 24.sp, color = TextoBlanco)
-        }
-
-        if (state.errorMessage != null) {
-            // Aquí puedes mostrar un Snackbar o un diálogo de error
         }
     }
 }
@@ -147,7 +146,7 @@ fun PhotoPreview(viewModel: CamaraViewModel) {
             Text("📸", fontSize = 80.sp)
         }
         Spacer(Modifier.height(32.dp))
-        Text("¿QUIERES AGREGAR UNA NOTA?", fontSize = 16.sp, color = TextoBlanco)
+        Text("¿QUIERES GUARDAR ESTA FOTO?", fontSize = 16.sp, color = TextoBlanco)
         Spacer(Modifier.height(24.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -158,16 +157,16 @@ fun PhotoPreview(viewModel: CamaraViewModel) {
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SuperficieCards)
-            ) { 
-                Text("DESCARTAR", color = TextoBlanco) 
+            ) {
+                Text("DESCARTAR", color = TextoBlanco)
             }
             Button(
                 onClick = { viewModel.onEvent(CamaraEvent.ContinuarConNota) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MoradoNeon)
-            ) { 
-                Text("CONTINUAR", color = TextoBlanco) 
+            ) {
+                Text("CONTINUAR", color = TextoBlanco)
             }
         }
     }

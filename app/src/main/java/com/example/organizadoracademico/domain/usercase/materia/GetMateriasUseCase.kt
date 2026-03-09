@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 class GetMateriasUseCase(
     private val repository: IMateriaRepository
 ) {
+    // CAMBIO: Ya no solicitamos el userId porque las materias son compartidas
     operator fun invoke(): Flow<List<Materia>> {
+        // Llamamos al nuevo método global de la interfaz
         return repository.getAllMaterias()
     }
 }

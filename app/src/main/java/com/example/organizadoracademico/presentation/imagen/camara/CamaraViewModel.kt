@@ -18,19 +18,35 @@ class CamaraViewModel(
     fun onEvent(event: CamaraEvent) {
         when (event) {
             is CamaraEvent.Inicializar -> {
-                // La materiaId se sigue necesitando para guardar la foto.
                 _state.update { it.copy(materiaId = event.materiaId) }
             }
+
             is CamaraEvent.FotoTomada -> {
                 _state.update { it.copy(lastPhotoUri = event.uri) }
             }
+
             is CamaraEvent.ContinuarConNota -> {
-                // Lógica para guardar la foto (si es necesario) y navegar
+                // Solo activamos la navegación. No borramos la URI aquí.
                 _state.update { it.copy(photoSaved = true) }
             }
-            is CamaraEvent.DescartarFoto -> {
-                _state.update { it.copy(lastPhotoUri = null) }
+
+            is CamaraEvent.ResetNavegacion -> {
+                // IMPORTANTE: Solo ponemos photoSaved en false.
+                // Mantenemos lastPhotoUri con valor para que la imagen siga visible
+                // mientras ocurre la transición de pantallas y así evitar el parpadeo.
+                _state.update { it.copy(photoSaved = false) }
             }
+
+            is CamaraEvent.DescartarFoto -> {
+                // Aquí sí borramos la foto porque el usuario explícitamente la rechazó.
+                _state.update { it.copy(lastPhotoUri = null, photoSaved = false) }
+            }
+
+            is CamaraEvent.LimpiarTodo -> {
+                // Úsalo al entrar a la pantalla (LaunchedEffect Unit) para limpiar basura anterior.
+                _state.update { it.copy(lastPhotoUri = null, photoSaved = false, errorMessage = null) }
+            }
+
             is CamaraEvent.ResetError -> {
                 _state.update { it.copy(errorMessage = null) }
             }

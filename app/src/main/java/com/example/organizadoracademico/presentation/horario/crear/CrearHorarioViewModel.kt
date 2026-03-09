@@ -2,6 +2,7 @@ package com.example.organizadoracademico.presentation.horario.crear
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.organizadoracademico.data.local.util.SessionManager // <-- Importante
 import com.example.organizadoracademico.domain.model.Horario
 import com.example.organizadoracademico.domain.usercase.horario.AddHorarioUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
@@ -19,16 +20,21 @@ import kotlinx.coroutines.launch
 class CrearHorarioViewModel(
     private val getMateriasUseCase: GetMateriasUseCase,
     private val getProfesoresUseCase: GetProfesoresUseCase,
-    private val addHorarioUseCase: AddHorarioUseCase
+    private val addHorarioUseCase: AddHorarioUseCase,
+    private val sessionManager: SessionManager // <-- 1. Inyectamos el SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CrearHorarioState())
     val state: StateFlow<CrearHorarioState> = _state.asStateFlow()
 
+    // 2. Obtenemos el ID del usuario actual
+    private val userId = sessionManager.getUserId()
+
     init {
         cargarDatosIniciales()
     }
 
+    // ... (onEvent y cargarDatosIniciales se mantienen igual)
     fun onEvent(event: CrearHorarioEvent) {
         when (event) {
             is CrearHorarioEvent.CargarDatosIniciales -> cargarDatosIniciales()
@@ -89,23 +95,20 @@ class CrearHorarioViewModel(
             val profesor = _state.value.profesorSeleccionado
 
             if (materia == null || profesor == null) {
-                _state.update {
-                    it.copy(errorMessage = "Debes seleccionar materia y profesor")
-                }
+                _state.update { it.copy(errorMessage = "Debes seleccionar materia y profesor") }
                 return@launch
             }
 
-            // Validar que hora fin sea mayor que hora inicio
             if (_state.value.horaInicio >= _state.value.horaFin) {
-                _state.update {
-                    it.copy(errorMessage = "La hora fin debe ser mayor a la hora inicio")
-                }
+                _state.update { it.copy(errorMessage = "La hora fin debe ser mayor a la hora inicio") }
                 return@launch
             }
 
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
+            // 3. AGREGAMOS EL usuarioId AL CONSTRUCTOR DEL HORARIO
             val horario = Horario(
+                usuarioId = userId, // <-- Aquí se soluciona el error
                 materiaId = materia.id,
                 profesorId = profesor.id,
                 dia = _state.value.diaSeleccionado,
@@ -117,19 +120,10 @@ class CrearHorarioViewModel(
             val result = addHorarioUseCase.invoke(horario)
 
             result.onSuccess {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        isSuccess = true,
-                        errorMessage = null
-                    )
-                }
+                _state.update { it.copy(isLoading = false, isSuccess = true) }
             }.onFailure { exception ->
                 _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = exception.message ?: "Error al guardar horario"
-                    )
+                    it.copy(isLoading = false, errorMessage = exception.message ?: "Error al guardar")
                 }
             }
         }

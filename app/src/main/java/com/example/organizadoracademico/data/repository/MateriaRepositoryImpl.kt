@@ -20,12 +20,14 @@ class MateriaRepositoryImpl(
     private val db: AppDatabase
 ) : IMateriaRepository {
 
+    // CAMBIO: Ahora la función no recibe parámetros porque el catálogo es global
     override fun getAllMaterias(): Flow<List<Materia>> {
-        // Disparo de carga forzada: Si no hay datos, DataInitializer los crea
+        // Disparo de carga inicial global si la tabla está vacía
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Usamos el conteo de profesores como bandera de base de datos vacía
-                if (db.profesorDao().getCount() == 0) {
+                // Usamos el método global getCountGlobal que pusimos en el DAO
+                if (dao.getCountGlobal() == 0) {
+                    // Usamos el método que no pide userId
                     DataInitializer(db).populateIfEmpty()
                 }
             } catch (e: Exception) {
@@ -33,29 +35,26 @@ class MateriaRepositoryImpl(
             }
         }
 
+        // Retornamos todas las materias (sin filtrar por usuario)
         return dao.getAll().map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     override suspend fun insertMateria(materia: Materia) {
-        // 1. Persistencia local inmediata
+        // La entidad ya no tiene userId
         dao.insert(materia.toEntity())
-        
-        // 2. Sincronización remota
+
         try {
             remoteService.saveMateria(materia)
         } catch (e: Exception) {
-            // Aquí se podría implementar un sistema de reintentos o marcar como "pendiente"
             e.printStackTrace()
         }
     }
 
     override suspend fun deleteMateria(id: Int) {
-        // 1. Borrado local
         dao.deleteById(id)
-        
-        // 2. Borrado remoto
+
         try {
             remoteService.deleteMateria(id)
         } catch (e: Exception) {

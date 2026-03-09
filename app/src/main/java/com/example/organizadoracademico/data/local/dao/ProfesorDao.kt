@@ -11,13 +11,9 @@ interface ProfesorDao {
     @Query("SELECT * FROM profesores ORDER BY nombre ASC")
     fun getAll(): Flow<List<ProfesorEntity>>
 
-    @Insert
-    suspend fun insert(profesor: ProfesorEntity)
-
-    @Query("SELECT * FROM profesores LIMIT 1") // O la tabla que corresponda
-    suspend fun getAllStatic(): List<ProfesorEntity>
-
     @Query("SELECT COUNT(*) FROM profesores")
     suspend fun getCount(): Int
 
+    @Insert
+    suspend fun insert(profesor: ProfesorEntity)
 }
