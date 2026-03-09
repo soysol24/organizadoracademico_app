@@ -83,26 +83,18 @@ val viewModelModule = module {
     viewModel {
         MisMateriasViewModel(
             getMateriasUseCase = get(),
+            getHorariosUseCase = get(), // <--- Agregamos este get()
             getImagenesPorMateriaUseCase = get(),
             sessionManager = get()
         )
     }
 
-    // VerHorarioViewModel ahora pide 5 cosas:
-    // 4 UseCases + SessionManager
-    viewModel {
-        VerHorarioViewModel(get(), get(), get(), get(), get())
-    }
-
-    // Asegúrate de que CrearHorarioViewModel también tenga los get() necesarios
+    // El resto se mantiene igual, ya los tenías bien actualizados:
+    viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
     viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
-
-    viewModel { GaleriaViewModel(get(), get(), get(), get())}
+    viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get()) }
-
-    // PerfilViewModel suele necesitar el SessionManager para mostrar los datos del usuario actual
     viewModel { PerfilViewModel(get(), get(), get(), get(), get(), get(), get()) }
-
     viewModel { DetalleImagenViewModel(get(), get(), get(), get(), get()) }
 }

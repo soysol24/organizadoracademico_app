@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.domain.model.Imagen
 import com.example.organizadoracademico.domain.model.Materia
+import com.example.organizadoracademico.domain.usercase.horario.GetHorariosUseCase // IMPORTANTE
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenesPorMateriaUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +16,7 @@ import java.util.*
 @OptIn(ExperimentalCoroutinesApi::class)
 class MisMateriasViewModel(
     private val getMateriasUseCase: GetMateriasUseCase,
+    private val getHorariosUseCase: GetHorariosUseCase, // Agregado
     private val getImagenesPorMateriaUseCase: GetImagenesPorMateriaUseCase,
     private val sessionManager: SessionManager
 ) : ViewModel() {
@@ -22,7 +24,6 @@ class MisMateriasViewModel(
     private val _state = MutableStateFlow(MisMateriasState())
     val state: StateFlow<MisMateriasState> = _state.asStateFlow()
 
-    // El ID del usuario logueado lo usaremos solo para las imágenes
     private val userId = sessionManager.getUserId()
 
     init {
@@ -42,20 +43,27 @@ class MisMateriasViewModel(
     private fun cargarDatos() {
         _state.update { it.copy(isLoading = true) }
 
-        // CAMBIO 1: getMateriasUseCase() ya no pide userId (es global)
-        getMateriasUseCase()
-            .flatMapLatest { materias ->
-                if (materias.isEmpty()) {
+        // 1. Combinamos las materias globales con los horarios del usuario
+        combine(
+            getMateriasUseCase(),
+            getHorariosUseCase(userId)
+        ) { todasLasMaterias, misHorarios ->
+            // Filtramos: Solo nos quedamos con las materias cuyo ID esté en mis horarios
+            val idsInscritos = misHorarios.map { it.materiaId }.toSet()
+            todasLasMaterias.filter { it.id in idsInscritos }
+        }
+            .flatMapLatest { misMateriasInscritas ->
+                if (misMateriasInscritas.isEmpty()) {
                     flowOf(Pair(emptyList<Materia>(), emptyMap<Int, List<Imagen>>()))
                 } else {
-                    val imageFlows = materias.map { materia ->
-                        // CAMBIO 2: Las imágenes SÍ piden materiaId Y userId (son privadas)
+                    // 2. Por cada materia inscrita, traemos sus imágenes privadas
+                    val imageFlows = misMateriasInscritas.map { materia ->
                         getImagenesPorMateriaUseCase(materia.id, userId).map { imagenes ->
                             materia.id to imagenes
                         }
                     }
                     combine(imageFlows) { results ->
-                        Pair(materias, results.toMap())
+                        Pair(misMateriasInscritas, results.toMap())
                     }
                 }
             }
@@ -78,14 +86,6 @@ class MisMateriasViewModel(
                 }
             }
             .launchIn(viewModelScope)
-    }
-
-    // ... (resto de funciones de filtrado y fecha se mantienen igual)
-
-    fun getMateriasFiltradas(): List<Materia> {
-        val query = _state.value.searchQuery.lowercase().trim()
-        return if (query.isEmpty()) _state.value.materias
-        else _state.value.materias.filter { it.nombre.lowercase().contains(query) }
     }
 
     fun getUltimasImagenes(materiaId: Int, limite: Int = 6): List<Imagen> =

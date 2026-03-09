@@ -1,10 +1,13 @@
 package com.example.organizadoracademico.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.organizadoracademico.domain.model.Materia
 
-@Entity(tableName = "materias")
+@Entity(tableName = "materias",
+        indices = [Index(value = ["nombre"], unique = true)]
+)
 data class MateriaEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val nombre: String,
