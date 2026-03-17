@@ -1,6 +1,7 @@
 package com.example.organizadoracademico.di
 
 import com.example.organizadoracademico.data.local.database.AppDatabase
+import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.data.repository.*
 import com.example.organizadoracademico.domain.repository.*
 import com.example.organizadoracademico.domain.usercase.horario.*
@@ -12,6 +13,7 @@ import com.example.organizadoracademico.domain.usercase.usuario.LoginUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.LogoutUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.RegistroUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenUseCase
+import com.example.organizadoracademico.hardware.vibration.VibratorManager
 import com.example.organizadoracademico.presentation.horario.crear.CrearHorarioViewModel
 import com.example.organizadoracademico.presentation.horario.ver.VerHorarioViewModel
 import com.example.organizadoracademico.presentation.imagen.camara.CamaraViewModel
@@ -23,32 +25,24 @@ import com.example.organizadoracademico.presentation.main.MainViewModel
 import com.example.organizadoracademico.presentation.materia.MisMateriasViewModel
 import com.example.organizadoracademico.presentation.perfil.PerfilViewModel
 import com.example.organizadoracademico.presentation.registro.RegistroViewModel
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
-val repositoryModule = module {
-    // 1. Provee la instancia de Firebase Firestore (fundamental)
-    single { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
 
-    // 2. Base de datos y Sesión
+// ==================== MÓDULO DE DATOS LOCALES ====================
+val localDataModule = module {
     single { AppDatabase.getInstance(get()) }
-    single { com.example.organizadoracademico.data.local.util.SessionManager(get()) }
-
-    // 3. Servicios Remotos (Ahora con get() para inyectar Firestore)
-    single { com.example.organizadoracademico.data.remote.MateriaFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.ProfesorFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.HorarioFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.ImagenFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.UsuarioFirestoreService(get()) }
-
-    // ... resto de tus DAOs y Repositorios
     single { get<AppDatabase>().materiaDao() }
     single { get<AppDatabase>().profesorDao() }
     single { get<AppDatabase>().horarioDao() }
     single { get<AppDatabase>().imagenDao() }
     single { get<AppDatabase>().usuarioDao() }
+    single { SessionManager(get()) }
+}
 
-    // REPOSITORIOS
+// ==================== MÓDULO DE REPOSITORIOS ====================
+val repositoryModule = module {
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get(), get()) }
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get(), get()) }
     single<IHorarioRepository> { HorarioRepositoryImpl(get(), get()) }
@@ -56,45 +50,52 @@ val repositoryModule = module {
     single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get()) }
 }
 
+// ==================== MÓDULO DE CASOS DE USO ====================
 val useCaseModule = module {
-    // ... (Tus UseCases están perfectos como los pusiste)
+    // Horario
     factory { GetHorariosUseCase(get()) }
     factory { AddHorarioUseCase(get()) }
     factory { DeleteHorarioUseCase(get()) }
+
+    // Materia
     factory { GetMateriasUseCase(get()) }
     factory { AddMateriaUseCase(get()) }
+
+    // Profesor
     factory { GetProfesoresUseCase(get()) }
+
+    // Imagen
     factory { GetImagenesPorMateriaUseCase(get()) }
     factory { GetImagenUseCase(get()) }
     factory { SaveImagenConNotaUseCase(get()) }
     factory { UpdateNotaUseCase(get()) }
     factory { DeleteImagenUseCase(get()) }
+
+    // Usuario
     factory { LoginUseCase(get()) }
     factory { RegistroUseCase(get()) }
     factory { GetUsuarioUseCase(get()) }
     factory { LogoutUseCase() }
 }
 
+// ==================== MÓDULO DE VIEWMODELS ====================
 val viewModelModule = module {
+    // Auth
     viewModel { LoginViewModel(get(), get()) }
     viewModel { RegistroViewModel(get()) }
     viewModel { MainViewModel(get()) }
 
-    viewModel {
-        MisMateriasViewModel(
-            getMateriasUseCase = get(),
-            getHorariosUseCase = get(), // <--- Agregamos este get()
-            getImagenesPorMateriaUseCase = get(),
-            sessionManager = get()
-        )
-    }
-
-    // El resto se mantiene igual, ya los tenías bien actualizados:
+    // Materias y Horarios
+    viewModel { MisMateriasViewModel(get(), get(), get(), get()) }
     viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
     viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
+
+    // Imágenes
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get()) }
-    viewModel { PerfilViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { DetalleImagenViewModel(get(), get(), get(), get(), get()) }
+
+    // Perfil - AHORA CON SOLO 3 PARÁMETROS ✅
+    viewModel { PerfilViewModel(get(), get(), get()) }
 }

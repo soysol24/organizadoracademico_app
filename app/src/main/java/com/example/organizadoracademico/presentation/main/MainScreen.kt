@@ -44,7 +44,7 @@ fun MainScreen(
 
         // Título de acciones
         Text(
-            text = "⚡ ACCIONES RÁPIDAS",
+            text = "ACCIONES RÁPIDAS",
             fontSize = 18.sp,
             color = MoradoNeon,
             modifier = Modifier.padding(horizontal = 20.dp)
@@ -52,21 +52,21 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Menú de acciones
+        // Menú de acciones (SOLO 3 OPCIONES)
         ActionMenu(
             onCrearHorario = { navController.navigate(Screen.CrearHorario.route) },
             onVerHorario = { navController.navigate(Screen.VerHorario.route) },
-            onMisMaterias = { navController.navigate(Screen.MisMaterias.route) },
-            onAjustes = { navController.navigate(Screen.Perfil.route) }
+            onMisMaterias = { navController.navigate(Screen.MisMaterias.route) }
+            // ELIMINADO: onAjustes
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Bottom Navigation
+        // Bottom Navigation (SOLO 2 OPCIONES)
         BottomNavigationBar(
             onInicioClick = { /* Ya estamos en inicio */ },
-            onPerfilClick = { navController.navigate(Screen.Perfil.route) },
-            onAjustesClick = { navController.navigate(Screen.Perfil.route) }
+            onPerfilClick = { navController.navigate(Screen.Perfil.route) }
+            // ELIMINADO: onAjustesClick
         )
     }
 }
@@ -135,7 +135,7 @@ fun WelcomeCard() {
         ) {
             Column {
                 Text(
-                    text = "⚡ ¡TE ECHAMOS DE MENOS!",
+                    text = "¡TE ECHAMOS DE MENOS!",
                     fontSize = 18.sp,
                     color = TextoBlanco,
                     style = MaterialTheme.typography.titleMedium
@@ -159,8 +159,8 @@ fun WelcomeCard() {
 fun ActionMenu(
     onCrearHorario: () -> Unit,
     onVerHorario: () -> Unit,
-    onMisMaterias: () -> Unit,
-    onAjustes: () -> Unit
+    onMisMaterias: () -> Unit
+    // ELIMINADO: onAjustes
 ) {
     Column(
         modifier = Modifier
@@ -195,15 +195,7 @@ fun ActionMenu(
             onClick = onMisMaterias
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        ActionButton(
-            icon = "⚙️",
-            title = "CONFIGURACIÓN",
-            subtitle = "Ajustes de la app",
-            color = RosaNeon,
-            onClick = onAjustes
-        )
+        // ELIMINADO: Bloque de CONFIGURACIÓN
     }
 }
 
@@ -269,8 +261,8 @@ fun ActionButton(
 @Composable
 fun BottomNavigationBar(
     onInicioClick: () -> Unit,
-    onPerfilClick: () -> Unit,
-    onAjustesClick: () -> Unit
+    onPerfilClick: () -> Unit
+    // ELIMINADO: onAjustesClick
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -311,19 +303,7 @@ fun BottomNavigationBar(
                 }
             }
 
-            IconButton(onClick = onAjustesClick) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "⚙️",
-                        fontSize = 24.sp
-                    )
-                    Text(
-                        text = "Ajustes",
-                        fontSize = 12.sp,
-                        color = TextoGris
-                    )
-                }
-            }
+            // ELIMINADO: IconButton de Ajustes
         }
     }
 }
