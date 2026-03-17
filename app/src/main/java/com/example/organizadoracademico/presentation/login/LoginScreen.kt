@@ -76,15 +76,6 @@ fun LoginScreen(
             )
 
             Text(
-                text = "SOL",
-                fontSize = 32.sp,
-                color = TextoBlanco,
-                style = MaterialTheme.typography.headlineLarge
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
                 text = "TE ECHAMOS DE MENOS",
                 fontSize = 14.sp,
                 color = MoradoNeon,
