@@ -2,6 +2,7 @@ package com.example.organizadoracademico.presentation.imagen.nota
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.domain.usercase.imagen.SaveImagenConNotaUseCase
 import com.example.organizadoracademico.hardware.camera.ImageSaver
 import com.example.organizadoracademico.hardware.vibration.VibratorManager
@@ -14,11 +15,15 @@ import kotlinx.coroutines.launch
 class NotaViewModel(
     private val saveImagenConNotaUseCase: SaveImagenConNotaUseCase,
     private val imageSaver: ImageSaver,
-    private val vibratorManager: VibratorManager
+    private val vibratorManager: VibratorManager,
+    private val sessionManager: SessionManager // <-- Nueva dependencia
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NotaState())
     val state: StateFlow<NotaState> = _state.asStateFlow()
+
+    // Obtenemos el ID del usuario actual de la sesión
+    private val userId = sessionManager.getUserId()
 
     fun onEvent(event: NotaEvent) {
         when (event) {
@@ -40,27 +45,29 @@ class NotaViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
+                // 1. Guardamos el archivo físicamente
                 val savedUri = imageSaver.saveImageToGallery(
                     imagePath = _state.value.imageUri,
                     materiaNombre = "Materia_${_state.value.materiaId}"
                 )
 
                 val notaTexto = if (saltar) null else _state.value.nota
-                
-                // Llamada directa a la función suspend
-                saveImagenConNotaUseCase(materiaId = _state.value.materiaId, uri = savedUri, nota = notaTexto)
 
-                // Si llegamos aquí, todo ha ido bien
+                // 2. Guardamos en la DB incluyendo el userId
+                saveImagenConNotaUseCase(
+                    materiaId = _state.value.materiaId,
+                    usuarioId = userId, // <-- ¡Dato vital!
+                    uri = savedUri,
+                    nota = notaTexto
+                )
+
                 vibratorManager.vibrateSuccess()
-                _state.update { it.copy(isLoading = false, isSaved = true) } // ¡Éxito!
+                _state.update { it.copy(isLoading = false, isSaved = true) }
 
             } catch (e: Exception) {
                 vibratorManager.vibrateError()
                 _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Error desconocido"
-                    )
+                    it.copy(isLoading = false, errorMessage = e.message ?: "Error desconocido")
                 }
             }
         }

@@ -14,7 +14,7 @@ class ImagenRepositoryImpl(
     private val remoteService: ImagenFirestoreService
 ) : IImagenRepository {
 
-    // Pasamos el userId al DAO para filtrar correctamente
+    // 1. Filtramos localmente por materia Y usuario
     override fun getImagenesByMateria(materiaId: Int, userId: Int): Flow<List<Imagen>> =
         dao.getByMateria(materiaId, userId).map { entities ->
             entities.map { it.toDomain() }
@@ -25,16 +25,23 @@ class ImagenRepositoryImpl(
     }
 
     override suspend fun insertImagen(imagen: Imagen) {
+        // 2. Guardamos en Room (Local)
+        // Es vital que imagen.usuarioId no sea 0 aquí
         dao.insert(imagen.toEntity())
+
+        // 3. Sincronizamos con la nube (Remoto)
         try {
             remoteService.save(imagen)
         } catch (e: Exception) {
+            // Si falla el internet, la foto sigue en Room.
+            // Podrías implementar una lógica de reintento luego.
             e.printStackTrace()
         }
     }
 
     override suspend fun updateNota(id: Int, nota: String) {
         dao.updateNota(id, nota)
+        // TODO: Actualizar también en remoto si es necesario
     }
 
     override suspend fun toggleFavorita(id: Int, favorita: Boolean) {

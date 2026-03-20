@@ -8,12 +8,14 @@ class SaveImagenConNotaUseCase(
 ) {
     suspend operator fun invoke(
         materiaId: Int,
+        usuarioId: Int, // <-- Nuevo parámetro
         uri: String,
         nota: String? = null
     ): Result<Unit> {
         return try {
             val imagen = Imagen(
                 materiaId = materiaId,
+                usuarioId = usuarioId, // <-- ASIGNACIÓN CRUCIAL
                 uri = uri,
                 nota = nota,
                 fecha = System.currentTimeMillis()

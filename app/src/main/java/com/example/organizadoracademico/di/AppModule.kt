@@ -94,7 +94,7 @@ val viewModelModule = module {
     viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
-    viewModel { NotaViewModel(get(), get(), get()) }
+    viewModel { NotaViewModel(get(), get(), get(), get()) }
     viewModel { PerfilViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { DetalleImagenViewModel(get(), get(), get(), get(), get()) }
 }
