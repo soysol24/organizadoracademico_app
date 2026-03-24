@@ -1,3 +1,8 @@
+# --- SEGURIDAD Y FIREBASE ---
+# No subir las llaves de Google Services
+app/google-services.json
+
+# --- ANDROID STUDIO Y GRADLE ---
 *.iml
 .gradle
 /local.properties
@@ -13,3 +18,16 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# --- ARCHIVOS DE DISPOSITIVOS ---
+*.apk
+*.apks
+*.bundle
+
+# --- KOTLIN Y JAVA ---
+*.class
+/bin
+/gen
+
+# --- LOGS Y TEMPORALES ---
+*.log
