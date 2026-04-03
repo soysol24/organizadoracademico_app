@@ -25,6 +25,7 @@ import com.example.organizadoracademico.domain.model.Imagen
 )
 data class ImagenEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val remoteId: Int? = null,
     val materiaId: Int,
     val usuarioId: Int, // <-- AÑADIDO: Dueño de la foto
     val uri: String,
@@ -39,5 +40,11 @@ fun ImagenEntity.toDomain(): Imagen = Imagen(
 )
 
 fun Imagen.toEntity(): ImagenEntity = ImagenEntity(
-    id, materiaId, usuarioId, uri, nota, fecha, favorita
+    id = id,
+    materiaId = materiaId,
+    usuarioId = usuarioId,
+    uri = uri,
+    nota = nota,
+    fecha = fecha,
+    favorita = favorita
 )

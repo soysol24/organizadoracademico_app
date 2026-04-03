@@ -2,7 +2,6 @@ package com.example.organizadoracademico.presentation.registro
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.organizadoracademico.core.UserSession // <-- AÑADIDO
 import com.example.organizadoracademico.domain.usercase.usuario.RegistroUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,11 +47,7 @@ class RegistroViewModel(
                 password = _state.value.password
             )
 
-            result.onSuccess { usuario ->
-                // --- CAPTURAMOS EL ID DEL NUEVO USUARIO ---
-                // Al registrar, el UseCase debe devolver el usuario con el ID que generó la DB
-                UserSession.userId = usuario.id
-
+            result.onSuccess {
                 _state.update {
                     it.copy(
                         isLoading = false,

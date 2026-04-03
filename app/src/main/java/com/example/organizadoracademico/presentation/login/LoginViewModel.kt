@@ -2,7 +2,6 @@ package com.example.organizadoracademico.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.organizadoracademico.data.local.util.SessionManager // Importamos el manager
 import com.example.organizadoracademico.domain.usercase.usuario.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,8 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val loginUseCase: LoginUseCase,
-    private val sessionManager: SessionManager // 1. Inyectamos el SessionManager
+    private val loginUseCase: LoginUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -33,14 +31,7 @@ class LoginViewModel(
 
             val result = loginUseCase.invoke(_state.value.email, _state.value.password)
 
-            result.onSuccess { usuario ->
-                // 2. GUARDADO PERSISTENTE:
-                // Ahora usamos el manager para que la sesión no se borre al cerrar la app
-                sessionManager.saveSession(
-                    userId = usuario.id,
-                    nombre = usuario.nombre ?: "Estudiante"
-                )
-
+            result.onSuccess {
                 _state.update {
                     it.copy(
                         isLoading = false,

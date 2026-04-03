@@ -9,7 +9,9 @@ interface IImagenRepository {
 
     suspend fun getImagenById(id: Int): Imagen?
     suspend fun insertImagen(imagen: Imagen)
+    // Se mantiene local hasta tener endpoint remoto de actualización de nota.
     suspend fun updateNota(id: Int, nota: String)
+    // Se mantiene local hasta tener endpoint remoto de favorito.
     suspend fun toggleFavorita(id: Int, favorita: Boolean)
     suspend fun deleteImagen(id: Int)
 }

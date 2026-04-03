@@ -1,5 +1,6 @@
 package com.example.organizadoracademico.presentation.imagen.detalle
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -25,7 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.organizadoracademico.presentation.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
+import java.net.URL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,16 +81,6 @@ fun DetalleImagenScreen(navController: NavController, imagenId: Int) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Contenedor de la Imagen
-                val bitmap = remember(state.imagen!!.uri) {
-                    try {
-                        context.contentResolver.openInputStream(Uri.parse(state.imagen!!.uri))?.use {
-                            BitmapFactory.decodeStream(it)
-                        }
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -94,16 +88,20 @@ fun DetalleImagenScreen(navController: NavController, imagenId: Int) {
                         .clip(RoundedCornerShape(16.dp))
                         .background(SuperficieCards)
                 ) {
+                    val bitmap by produceState<Bitmap?>(initialValue = null, state.imagen!!.uri) {
+                        value = loadBitmap(context, state.imagen!!.uri)
+                    }
+
                     if (bitmap != null) {
                         Image(
-                            bitmap = bitmap.asImageBitmap(),
+                            bitmap = bitmap!!.asImageBitmap(),
                             contentDescription = "Imagen de la nota",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("📸", fontSize = 80.sp) // Placeholder en caso de error
+                            Text("📸", fontSize = 80.sp)
                         }
                     }
                 }
@@ -126,6 +124,26 @@ fun DetalleImagenScreen(navController: NavController, imagenId: Int) {
                 Text("Imagen no encontrada", color = TextoGris, fontSize = 18.sp)
             }
         }
+    }
+}
+
+private suspend fun loadBitmap(context: android.content.Context, rawUri: String): Bitmap? = withContext(Dispatchers.IO) {
+    try {
+        when {
+            rawUri.startsWith("content://") || rawUri.startsWith("file://") -> {
+                context.contentResolver.openInputStream(Uri.parse(rawUri))?.use { BitmapFactory.decodeStream(it) }
+            }
+
+            rawUri.startsWith("http://") || rawUri.startsWith("https://") -> {
+                URL(rawUri).openStream().use { BitmapFactory.decodeStream(it) }
+            }
+
+            else -> {
+                context.contentResolver.openInputStream(Uri.parse(rawUri))?.use { BitmapFactory.decodeStream(it) }
+            }
+        }
+    } catch (_: Exception) {
+        null
     }
 }
 

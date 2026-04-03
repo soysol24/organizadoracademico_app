@@ -8,8 +8,8 @@ class LoginUseCase(
 ) {
     suspend operator fun invoke(email: String, password: String): Result<Usuario> {
         return try {
-            val usuario = repository.getUsuarioByEmail(email)
-            if (usuario != null && usuario.password == password) {
+            val usuario = repository.login(email, password)
+            if (usuario != null) {
                 Result.success(usuario)
             } else {
                 Result.failure(Exception("Email o contraseña incorrectos"))

@@ -1,6 +1,3 @@
-# --- SEGURIDAD Y FIREBASE ---
-# No subir las llaves de Google Services
-app/google-services.json
 
 # --- ANDROID STUDIO Y GRADLE ---
 *.iml

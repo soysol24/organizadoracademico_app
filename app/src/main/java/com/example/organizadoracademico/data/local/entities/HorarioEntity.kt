@@ -31,6 +31,7 @@ import com.example.organizadoracademico.domain.model.Horario
 )
 data class HorarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val remoteId: Int? = null,
     val usuarioId: Int, // <-- AÑADIDO: Ahora el DAO podrá encontrarlo
     val materiaId: Int,
     val profesorId: Int,
@@ -45,5 +46,12 @@ fun HorarioEntity.toDomain(): Horario = Horario(
     id, usuarioId, materiaId, profesorId, dia, horaInicio, horaFin, color
 )
 fun Horario.toEntity(): HorarioEntity = HorarioEntity(
-    id, usuarioId, materiaId, profesorId, dia, horaInicio, horaFin, color
+    id = id,
+    usuarioId = usuarioId,
+    materiaId = materiaId,
+    profesorId = profesorId,
+    dia = dia,
+    horaInicio = horaInicio,
+    horaFin = horaFin,
+    color = color
 )

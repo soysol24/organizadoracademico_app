@@ -5,7 +5,6 @@ import com.example.organizadoracademico.data.local.database.AppDatabase
 import com.example.organizadoracademico.data.local.entities.toDomain
 import com.example.organizadoracademico.data.local.entities.toEntity
 import com.example.organizadoracademico.data.local.util.DataInitializer
-import com.example.organizadoracademico.data.remote.MateriaFirestoreService
 import com.example.organizadoracademico.domain.model.Materia
 import com.example.organizadoracademico.domain.repository.IMateriaRepository
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +15,6 @@ import kotlinx.coroutines.launch
 
 class MateriaRepositoryImpl(
     private val dao: MateriaDao,
-    private val remoteService: MateriaFirestoreService,
     private val db: AppDatabase
 ) : IMateriaRepository {
 
@@ -42,23 +40,10 @@ class MateriaRepositoryImpl(
     }
 
     override suspend fun insertMateria(materia: Materia) {
-        // La entidad ya no tiene userId
         dao.insert(materia.toEntity())
-
-        try {
-            remoteService.saveMateria(materia)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     override suspend fun deleteMateria(id: Int) {
         dao.deleteById(id)
-
-        try {
-            remoteService.deleteMateria(id)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 }

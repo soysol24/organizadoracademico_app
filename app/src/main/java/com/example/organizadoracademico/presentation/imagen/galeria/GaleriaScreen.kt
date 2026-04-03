@@ -1,8 +1,5 @@
 package com.example.organizadoracademico.presentation.imagen.galeria
 
-import android.graphics.BitmapFactory
-import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,12 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.organizadoracademico.presentation.animation.pulseEffect
 import com.example.organizadoracademico.presentation.navigation.Screen
 import com.example.organizadoracademico.presentation.theme.*
@@ -119,20 +115,6 @@ fun ImagenThumbnail(
     imagen: com.example.organizadoracademico.domain.model.Imagen,
     onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    // La carga de la imagen (que puede fallar) se hace aquí, dentro de 'remember'.
-    // Esto es seguro y no viola las reglas de Compose.
-    val bitmap = remember(imagen.uri) {
-        try {
-            context.contentResolver.openInputStream(Uri.parse(imagen.uri))?.use {
-                BitmapFactory.decodeStream(it)
-            }
-        } catch (e: Exception) {
-            null // Si algo falla, devolvemos null
-        }
-    }
-
     Card(
         modifier = Modifier
             .aspectRatio(1f)
@@ -142,17 +124,12 @@ fun ImagenThumbnail(
         colors = CardDefaults.cardColors(containerColor = SuperficieCards)
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Miniatura de la imagen",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                // Si el bitmap es nulo (porque falló la carga), mostramos el placeholder.
-                Text("📸", fontSize = 24.sp)
-            }
+            AsyncImage(
+                model = imagen.uri,
+                contentDescription = "Miniatura de la imagen",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
 
             if (imagen.nota != null) {
                 Box(

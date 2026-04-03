@@ -5,7 +5,6 @@ import com.example.organizadoracademico.data.local.database.AppDatabase
 import com.example.organizadoracademico.data.local.entities.toDomain
 import com.example.organizadoracademico.data.local.entities.toEntity
 import com.example.organizadoracademico.data.local.util.DataInitializer
-import com.example.organizadoracademico.data.remote.ProfesorFirestoreService
 import com.example.organizadoracademico.domain.model.Profesor
 import com.example.organizadoracademico.domain.repository.IProfesorRepository
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +15,6 @@ import kotlinx.coroutines.launch
 
 class ProfesorRepositoryImpl(
     private val dao: ProfesorDao,
-    private val remoteService: ProfesorFirestoreService,
     private val db: AppDatabase
 ) : IProfesorRepository {
 
@@ -39,10 +37,5 @@ class ProfesorRepositoryImpl(
 
     override suspend fun insertProfesor(profesor: Profesor) {
         dao.insert(profesor.toEntity())
-        try {
-            remoteService.save(profesor)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 }

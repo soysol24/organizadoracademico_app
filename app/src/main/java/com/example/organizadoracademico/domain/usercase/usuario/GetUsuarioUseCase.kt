@@ -8,8 +8,7 @@ class GetUsuarioUseCase(
 ) {
     suspend operator fun invoke(id: Int): Result<Usuario?> {
         return try {
-            // Por ahora retorna null, luego implementaremos
-            Result.success(null)
+            Result.success(repository.getUsuarioById(id))
         } catch (e: Exception) {
             Result.failure(e)
         }

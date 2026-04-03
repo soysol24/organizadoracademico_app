@@ -1,6 +1,5 @@
 package com.example.organizadoracademico.di
 
-import com.example.organizadoracademico.data.local.database.AppDatabase
 import com.example.organizadoracademico.data.repository.*
 import com.example.organizadoracademico.domain.repository.*
 import com.example.organizadoracademico.domain.usercase.horario.*
@@ -27,33 +26,14 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    // 1. Provee la instancia de Firebase Firestore (fundamental)
-    single { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
-
-    // 2. Base de datos y Sesión
-    single { AppDatabase.getInstance(get()) }
     single { com.example.organizadoracademico.data.local.util.SessionManager(get()) }
 
-    // 3. Servicios Remotos (Ahora con get() para inyectar Firestore)
-    single { com.example.organizadoracademico.data.remote.MateriaFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.ProfesorFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.HorarioFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.ImagenFirestoreService(get()) }
-    single { com.example.organizadoracademico.data.remote.UsuarioFirestoreService(get()) }
-
-    // ... resto de tus DAOs y Repositorios
-    single { get<AppDatabase>().materiaDao() }
-    single { get<AppDatabase>().profesorDao() }
-    single { get<AppDatabase>().horarioDao() }
-    single { get<AppDatabase>().imagenDao() }
-    single { get<AppDatabase>().usuarioDao() }
-
     // REPOSITORIOS
-    single<IMateriaRepository> { MateriaRepositoryImpl(get(), get(), get()) }
-    single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get(), get()) }
-    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get()) }
-    single<IImagenRepository> { ImagenRepositoryImpl(get(), get()) }
-    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get()) }
+    single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
+    single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
+    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get()) }
+    single<IImagenRepository> { ImagenRepositoryImpl(get(), get(), get(), get(), get()) }
+    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get()) }
 }
 
 val useCaseModule = module {
@@ -72,11 +52,11 @@ val useCaseModule = module {
     factory { LoginUseCase(get()) }
     factory { RegistroUseCase(get()) }
     factory { GetUsuarioUseCase(get()) }
-    factory { LogoutUseCase() }
+    factory { LogoutUseCase(get()) }
 }
 
 val viewModelModule = module {
-    viewModel { LoginViewModel(get(), get()) }
+    viewModel { LoginViewModel(get()) }
     viewModel { RegistroViewModel(get()) }
     viewModel { MainViewModel(get()) }
 

@@ -18,5 +18,6 @@ val databaseModule = module {
     single<HorarioDao> { get<AppDatabase>().horarioDao() }
     single<ImagenDao> { get<AppDatabase>().imagenDao() }
     single<UsuarioDao> { get<AppDatabase>().usuarioDao() }
+    single<SyncQueueDao> { get<AppDatabase>().syncQueueDao() }
 
 }
