@@ -1,4 +1,3 @@
-
 # --- ANDROID STUDIO Y GRADLE ---
 *.iml
 .gradle
@@ -28,3 +27,16 @@ local.properties
 
 # --- LOGS Y TEMPORALES ---
 *.log
+
+# --- ARCHIVOS SENSIBLES / CREDENCIALES ---
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+*service-account*.json
+*firebase-adminsdk*.json
+app/google-services.json

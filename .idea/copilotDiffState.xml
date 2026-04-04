@@ -12,6 +12,15 @@
             </PendingDiffInfo>
           </value>
         </entry>
+        <entry key="$PROJECT_DIR$/.gitignore">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.gitignore" />
+              <option name="originalContent" value="&#10;# --- ANDROID STUDIO Y GRADLE ---&#10;*.iml&#10;.gradle&#10;/local.properties&#10;/.idea/caches&#10;/.idea/libraries&#10;/.idea/modules.xml&#10;/.idea/workspace.xml&#10;/.idea/navEditor.xml&#10;/.idea/assetWizardSettings.xml&#10;.DS_Store&#10;/build&#10;/captures&#10;.externalNativeBuild&#10;.cxx&#10;local.properties&#10;&#10;# --- ARCHIVOS DE DISPOSITIVOS ---&#10;*.apk&#10;*.apks&#10;*.bundle&#10;&#10;# --- KOTLIN Y JAVA ---&#10;*.class&#10;/bin&#10;/gen&#10;&#10;# --- LOGS Y TEMPORALES ---&#10;*.log&#10;" />
+              <option name="updatedContent" value="# --- ANDROID STUDIO Y GRADLE ---&#10;*.iml&#10;.gradle&#10;/local.properties&#10;/.idea/caches&#10;/.idea/libraries&#10;/.idea/modules.xml&#10;/.idea/workspace.xml&#10;/.idea/navEditor.xml&#10;/.idea/assetWizardSettings.xml&#10;.DS_Store&#10;/build&#10;/captures&#10;.externalNativeBuild&#10;.cxx&#10;local.properties&#10;&#10;# --- ARCHIVOS DE DISPOSITIVOS ---&#10;*.apk&#10;*.apks&#10;*.bundle&#10;&#10;# --- KOTLIN Y JAVA ---&#10;*.class&#10;/bin&#10;/gen&#10;&#10;# --- LOGS Y TEMPORALES ---&#10;*.log&#10;&#10;# --- ARCHIVOS SENSIBLES / CREDENCIALES ---&#10;.env&#10;.env.*&#10;!.env.example&#10;*.keystore&#10;*.jks&#10;*.p12&#10;*.pem&#10;*.key&#10;*service-account*.json&#10;*firebase-adminsdk*.json&#10;app/google-services.json" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
         <entry key="$PROJECT_DIR$/Backend/ENDPOINTS.md">
           <value>
             <PendingDiffInfo>
