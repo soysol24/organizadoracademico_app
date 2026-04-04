@@ -11,6 +11,8 @@ import com.example.organizadoracademico.domain.usercase.usuario.LoginUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.LogoutUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.RegistroUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenUseCase
+import com.example.organizadoracademico.push.PushTokenUploader
+import com.example.organizadoracademico.push.PushTokenUploaderImpl
 import com.example.organizadoracademico.presentation.horario.crear.CrearHorarioViewModel
 import com.example.organizadoracademico.presentation.horario.ver.VerHorarioViewModel
 import com.example.organizadoracademico.presentation.imagen.camara.CamaraViewModel
@@ -27,13 +29,14 @@ import org.koin.dsl.module
 
 val repositoryModule = module {
     single { com.example.organizadoracademico.data.local.util.SessionManager(get()) }
+    single<PushTokenUploader> { PushTokenUploaderImpl(get(), get()) }
 
     // REPOSITORIOS
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
     single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get()) }
     single<IImagenRepository> { ImagenRepositoryImpl(get(), get(), get(), get(), get()) }
-    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get()) }
+    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get(), get()) }
 }
 
 val useCaseModule = module {

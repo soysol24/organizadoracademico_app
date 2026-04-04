@@ -6,6 +6,7 @@ import com.example.organizadoracademico.data.remote.dto.DeleteResponseDto
 import com.example.organizadoracademico.data.remote.dto.HorarioDto
 import com.example.organizadoracademico.data.remote.dto.ImagenDto
 import com.example.organizadoracademico.data.remote.dto.LoginRequestDto
+import com.example.organizadoracademico.data.remote.dto.PushTokenRequestDto
 import com.example.organizadoracademico.data.remote.dto.RegisterRequestDto
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -30,6 +31,12 @@ interface ApiService {
 
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequestDto): Response<AuthResponseDto>
+
+    @POST("push/token")
+    suspend fun registerPushToken(@Body request: PushTokenRequestDto): Response<Unit>
+
+    @POST("devices/token")
+    suspend fun registerDeviceToken(@Body request: PushTokenRequestDto): Response<Unit>
 
     @GET("horarios")
     suspend fun getHorarios(): Response<List<HorarioDto>>

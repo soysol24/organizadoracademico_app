@@ -10,11 +10,17 @@ import com.example.organizadoracademico.data.remote.dto.RegisterRequestDto
 import com.example.organizadoracademico.data.remote.mapper.toDomain
 import com.example.organizadoracademico.domain.model.Usuario
 import com.example.organizadoracademico.domain.repository.IUsuarioRepository
+import com.example.organizadoracademico.push.PushTokenUploader
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class UsuarioRepositoryImpl(
     private val dao: UsuarioDao,
     private val apiService: ApiService,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val pushTokenUploader: PushTokenUploader
 ) : IUsuarioRepository {
 
     override suspend fun getUsuarioById(id: Int): Usuario? {
@@ -33,10 +39,12 @@ class UsuarioRepositoryImpl(
             val usuario = body.user.toDomain()
             sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
             dao.insert(usuario.toEntity())
+            syncPushToken()
             usuario
         } catch (_: Exception) {
             dao.getByEmail(email)?.toDomain()?.takeIf { it.password == password }?.also {
                 sessionManager.saveSession(it.id, it.nombre)
+                syncPushToken()
             }
         }
     }
@@ -62,6 +70,7 @@ class UsuarioRepositoryImpl(
         val usuario = body.user.toDomain()
         sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
         dao.insert(usuario.toEntity())
+        syncPushToken()
         return usuario
     }
 
@@ -75,5 +84,14 @@ class UsuarioRepositoryImpl(
 
     override suspend fun updateUsuario(usuario: Usuario) {
         dao.update(usuario.toEntity())
+    }
+
+    private fun syncPushToken() {
+        if (!sessionManager.isLoggedIn()) return
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { pushTokenUploader.uploadToken(token) }
+            }
+        }
     }
 }
