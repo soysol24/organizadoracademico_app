@@ -8,7 +8,8 @@ data class HorarioDto(
     val dia: String,
     val horaInicio: String,
     val horaFin: String,
-    val color: String
+    val color: String,
+    val startAt: String? = null
 )
 
 data class CreateHorarioRequestDto(
@@ -17,13 +18,15 @@ data class CreateHorarioRequestDto(
     val dia: String,
     val horaInicio: String,
     val horaFin: String,
-    val color: String
+    val color: String,
+    val startAt: String? = null
 )
 
 data class ImagenDto(
     val id: Int,
     val materiaId: Int,
     val usuarioId: Int,
+    val horarioId: Int? = null,
     val uri: String,
     val nota: String?,
     val fecha: Long,

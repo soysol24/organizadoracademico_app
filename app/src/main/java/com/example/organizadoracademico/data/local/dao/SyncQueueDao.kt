@@ -15,13 +15,18 @@ interface SyncQueueDao {
     @Query("SELECT * FROM sync_queue ORDER BY createdAt ASC LIMIT :limit")
     suspend fun getPending(limit: Int = 50): List<SyncQueueEntity>
 
+    @Query("SELECT * FROM sync_queue WHERE entityType = :entityType ORDER BY createdAt ASC")
+    suspend fun getPendingByEntityType(entityType: String): List<SyncQueueEntity>
+
     @Query("DELETE FROM sync_queue WHERE id = :id")
     suspend fun deleteById(id: Int)
 
     @Query("DELETE FROM sync_queue WHERE entityType = :entityType AND entityLocalId = :entityLocalId")
     suspend fun deleteByEntity(entityType: String, entityLocalId: Int)
 
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE entityType = :entityType")
+    suspend fun countPendingByEntityType(entityType: String): Int
+
     @Query("UPDATE sync_queue SET retryCount = retryCount + 1 WHERE id = :id")
     suspend fun incrementRetry(id: Int)
 }
-

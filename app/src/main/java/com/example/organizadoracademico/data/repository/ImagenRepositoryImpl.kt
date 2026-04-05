@@ -119,6 +119,7 @@ class ImagenRepositoryImpl(
                         existing.copy(
                             materiaId = dto.materiaId,
                             usuarioId = dto.usuarioId,
+                            horarioId = dto.horarioId ?: existing.horarioId,
                             nota = dto.nota ?: existing.nota,
                             fecha = dto.fecha,
                             favorita = dto.favorita,

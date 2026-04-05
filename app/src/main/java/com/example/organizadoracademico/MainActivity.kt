@@ -33,11 +33,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = FondoPrincipal
                 ) {
-                    // Verificamos si hay sesión activa
-                    val estaLogueado = sessionManager.isLoggedIn()
-
-                    // Pasamos esta bandera a tu NavGraph para que sepa
-                    // si mostrar el Login o el Home directamente.
+                    // Solo permitimos entrar directo al Home si hay sesión remota válida.
+                    val estaLogueado = sessionManager.hasRemoteSession()
                     NavGraph(isLoggedIn = estaLogueado)
                 }
             }

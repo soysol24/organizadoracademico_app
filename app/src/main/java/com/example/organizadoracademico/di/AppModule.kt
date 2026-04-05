@@ -34,15 +34,15 @@ val repositoryModule = module {
     // REPOSITORIOS
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
-    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get()) }
+    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get(), get(), get(), get()) }
     single<IImagenRepository> { ImagenRepositoryImpl(get(), get(), get(), get(), get()) }
-    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get(), get()) }
+    single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get(), get(), get()) }
 }
 
 val useCaseModule = module {
-    // ... (Tus UseCases están perfectos como los pusiste)
     factory { GetHorariosUseCase(get()) }
     factory { AddHorarioUseCase(get()) }
+    factory { UpdateHorarioUseCase(get()) }
     factory { DeleteHorarioUseCase(get()) }
     factory { GetMateriasUseCase(get()) }
     factory { AddMateriaUseCase(get()) }
@@ -74,7 +74,7 @@ val viewModelModule = module {
 
     // El resto se mantiene igual, ya los tenías bien actualizados:
     viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
-    viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
+    viewModel { CrearHorarioViewModel(get(), get(), get(), get(), get()) }
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get(), get()) }

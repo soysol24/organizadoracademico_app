@@ -15,6 +15,9 @@ interface MateriaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(materia: MateriaEntity)
 
+    @Query("SELECT * FROM materias WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Int): MateriaEntity?
+
     @Query("DELETE FROM materias WHERE id = :id")
     suspend fun deleteById(id: Int)
 

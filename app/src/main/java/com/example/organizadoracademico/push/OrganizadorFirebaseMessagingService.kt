@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -21,6 +22,8 @@ class OrganizadorFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+
+        Log.d(TAG, "TOKEN_FCM_DEL_DISPOSITIVO: $token")
 
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
@@ -67,10 +70,8 @@ class OrganizadorFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     companion object {
+        private const val TAG = "FCM_TOKEN"
         private const val CHANNEL_ID = "organizador_push"
         private const val CHANNEL_NAME = "Notificaciones generales"
     }
 }
-
-
-

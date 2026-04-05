@@ -7,9 +7,9 @@ object SyncEntityType {
 
 object SyncAction {
     const val CREATE = "CREATE"
+    const val UPDATE = "UPDATE"
     const val DELETE = "DELETE"
 }
 
 data class ImagenDeletePayload(val remoteId: Int)
 data class HorarioDeletePayload(val remoteId: Int)
-

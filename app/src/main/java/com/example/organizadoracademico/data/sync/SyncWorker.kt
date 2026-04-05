@@ -3,14 +3,19 @@ package com.example.organizadoracademico.data.sync
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.organizadoracademico.data.local.dao.HorarioDao
 import com.example.organizadoracademico.data.local.dao.ImagenDao
+import com.example.organizadoracademico.data.local.dao.MateriaDao
+import com.example.organizadoracademico.data.local.dao.ProfesorDao
 import com.example.organizadoracademico.data.local.dao.SyncQueueDao
 import com.example.organizadoracademico.data.local.entities.HorarioEntity
 import com.example.organizadoracademico.data.local.entities.SyncQueueEntity
+import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.data.remote.ApiService
+import com.example.organizadoracademico.data.remote.dto.CreateHorarioRequestDto
 import com.example.organizadoracademico.data.remote.mapper.toCreateRequestDto
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -30,28 +35,41 @@ class SyncWorker(
 
     private val koin = GlobalContext.get()
     private val apiService: ApiService = koin.get()
+    private val sessionManager: SessionManager = koin.get()
     private val imagenDao: ImagenDao = koin.get()
     private val horarioDao: HorarioDao = koin.get()
+    private val materiaDao: MateriaDao = koin.get()
+    private val profesorDao: ProfesorDao = koin.get()
     private val syncQueueDao: SyncQueueDao = koin.get()
     private val gson = Gson()
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        if (!sessionManager.hasRemoteSession()) {
+            Log.d(TAG, "doWork: sin sesion remota valida, se omite")
+            return@withContext Result.success()
+        }
+
         val items = syncQueueDao.getPending(limit = 40)
+        Log.d(TAG, "doWork: pendientes=${items.size}")
         if (items.isEmpty()) return@withContext Result.success()
 
         var shouldRetry = false
 
         for (item in items) {
+            Log.d(TAG, "doWork: procesando id=${item.id} entity=${item.entityType} action=${item.action} localId=${item.entityLocalId}")
             val success = try {
                 processItem(item)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "doWork: exception itemId=${item.id}", e)
                 false
             }
 
             if (success) {
                 syncQueueDao.deleteById(item.id)
+                Log.d(TAG, "doWork: ok itemId=${item.id}")
             } else {
                 syncQueueDao.incrementRetry(item.id)
+                Log.w(TAG, "doWork: retry itemId=${item.id}")
                 shouldRetry = true
             }
         }
@@ -76,11 +94,17 @@ class SyncWorker(
                 val filePart = buildFilePart(imagen.uri) ?: return false
                 val materiaIdPart = imagen.materiaId.toString().toRequestBody("text/plain".toMediaType())
                 val notaPart = imagen.nota?.toRequestBody("text/plain".toMediaType())
+                val horarioIdPart = resolveRemoteHorarioIdPart(imagen.horarioId)
+                if (imagen.horarioId != null && horarioIdPart == null) {
+                    Log.w(TAG, "processImagen.CREATE: horarioId local sin remoteId localHorarioId=${imagen.horarioId}")
+                    return false
+                }
 
                 val response = apiService.uploadImagen(
                     file = filePart,
                     materiaId = materiaIdPart,
-                    nota = notaPart
+                    nota = notaPart,
+                    horarioId = horarioIdPart
                 )
 
                 if (!response.isSuccessful) return false
@@ -89,6 +113,7 @@ class SyncWorker(
                 imagenDao.insert(
                     imagen.copy(
                         remoteId = dto.id,
+                        horarioId = dto.horarioId ?: imagen.horarioId,
                         nota = dto.nota ?: imagen.nota,
                         favorita = dto.favorita
                     )
@@ -112,22 +137,93 @@ class SyncWorker(
                 val horario = horarioDao.getById(item.entityLocalId) ?: return true
                 if (horario.remoteId != null) return true
 
-                val response = apiService.createHorario(horario.toDomain().toCreateRequestDto())
-                if (!response.isSuccessful) return false
+                val request = mapHorarioRequestToRemoteIds(horario)
+                if (request == null) {
+                    Log.w(TAG, "processHorario.CREATE: mapeo remoto nulo localId=${item.entityLocalId}")
+                    return false
+                }
+                val response = apiService.createHorario(request)
+                Log.d(TAG, "processHorario.CREATE: http=${response.code()} ok=${response.isSuccessful} localId=${item.entityLocalId}")
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "processHorario.CREATE: bodyError=${response.errorBody()?.string()}")
+                    return false
+                }
                 val dto = response.body() ?: return false
 
                 horarioDao.insert(horario.copy(remoteId = dto.id))
+                Log.d(TAG, "processHorario.CREATE: remoteId=${dto.id} localId=${item.entityLocalId}")
                 true
+            }
+
+            SyncAction.UPDATE -> {
+                val horario = horarioDao.getById(item.entityLocalId) ?: return true
+                val remoteId = horario.remoteId ?: return true
+
+                val request = mapHorarioRequestToRemoteIds(horario)
+                if (request == null) {
+                    Log.w(TAG, "processHorario.UPDATE: mapeo remoto nulo localId=${item.entityLocalId}")
+                    return false
+                }
+                val response = apiService.updateHorario(remoteId, request)
+                val isGone = response.code() == 404
+                Log.d(TAG, "processHorario.UPDATE: http=${response.code()} ok=${response.isSuccessful} remoteId=$remoteId")
+                if (!response.isSuccessful && !isGone) {
+                    Log.w(TAG, "processHorario.UPDATE: bodyError=${response.errorBody()?.string()}")
+                }
+                response.isSuccessful || isGone
             }
 
             SyncAction.DELETE -> {
                 val payload = item.payload?.let { gson.fromJson(it, HorarioDeletePayload::class.java) } ?: return true
                 val response = apiService.deleteHorario(payload.remoteId)
-                response.isSuccessful
+                val isGone = response.code() == 404
+                Log.d(TAG, "processHorario.DELETE: http=${response.code()} ok=${response.isSuccessful} remoteId=${payload.remoteId}")
+                if (!response.isSuccessful && !isGone) {
+                    Log.w(TAG, "processHorario.DELETE: bodyError=${response.errorBody()?.string()}")
+                }
+                // DELETE idempotente: 404 significa que ya no existe para el usuario.
+                response.isSuccessful || isGone
             }
 
             else -> true
         }
+    }
+
+    private suspend fun mapHorarioRequestToRemoteIds(horario: HorarioEntity): CreateHorarioRequestDto? {
+        val baseRequest = horario.toDomain().toCreateRequestDto()
+        val localMateria = materiaDao.getById(horario.materiaId)
+        val localProfesor = profesorDao.getById(horario.profesorId)
+
+        val remoteMateriaId = resolveRemoteMateriaId(localMateria?.nombre)
+        val remoteProfesorId = resolveRemoteProfesorId(localProfesor?.nombre)
+
+        Log.d(
+            TAG,
+            "mapHorarioRequestToRemoteIds: localMateria=${horario.materiaId} localProfesor=${horario.profesorId} remoteMateria=$remoteMateriaId remoteProfesor=$remoteProfesorId"
+        )
+
+        if (remoteMateriaId == null || remoteProfesorId == null) {
+            return null
+        }
+
+        return baseRequest.copy(
+            materiaId = remoteMateriaId,
+            profesorId = remoteProfesorId
+        )
+    }
+
+    private suspend fun resolveRemoteMateriaId(nombre: String?): Int? {
+        if (nombre.isNullOrBlank()) return null
+        val response = runCatching { apiService.getMaterias() }.getOrNull() ?: return null
+        if (!response.isSuccessful) return null
+        return response.body().orEmpty().firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }?.id
+    }
+
+    private suspend fun resolveRemoteProfesorId(nombre: String?): Int? {
+        if (nombre.isNullOrBlank()) return null
+        val response = runCatching { apiService.getProfesores() }.getOrNull() ?: return null
+        if (!response.isSuccessful) return null
+        return response.body().orEmpty().firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }?.id
     }
 
     private fun buildFilePart(uriString: String): MultipartBody.Part? {
@@ -180,6 +276,15 @@ class SyncWorker(
         horaFin = horaFin,
         color = color
     )
+
+    private suspend fun resolveRemoteHorarioIdPart(localHorarioId: Int?): okhttp3.RequestBody? {
+        if (localHorarioId == null) return null
+        val horario = horarioDao.getById(localHorarioId) ?: return null
+        val remoteHorarioId = horario.remoteId ?: return null
+        return remoteHorarioId.toString().toRequestBody("text/plain".toMediaType())
+    }
+
+    companion object {
+        private const val TAG = "SYNC_HORARIOS"
+    }
 }
-
-

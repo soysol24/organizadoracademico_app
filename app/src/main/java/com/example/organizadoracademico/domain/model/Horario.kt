@@ -8,5 +8,6 @@ data class Horario(
     val dia: String = "",
     val horaInicio: String = "",
     val horaFin: String = "",
-    val color: String = ""
+    val color: String = "",
+    val pendienteSync: Boolean = false
 )

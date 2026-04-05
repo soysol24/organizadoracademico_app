@@ -8,5 +8,6 @@ interface IHorarioRepository {
     fun getAllHorarios(userId: Int): Flow<List<Horario>>
 
     suspend fun insertHorario(horario: Horario)
+    suspend fun updateHorario(horario: Horario)
     suspend fun deleteHorario(id: Int)
 }

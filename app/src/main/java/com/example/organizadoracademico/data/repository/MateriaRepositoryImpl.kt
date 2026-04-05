@@ -1,10 +1,10 @@
 package com.example.organizadoracademico.data.repository
 
 import com.example.organizadoracademico.data.local.dao.MateriaDao
-import com.example.organizadoracademico.data.local.database.AppDatabase
+import com.example.organizadoracademico.data.local.entities.MateriaEntity
 import com.example.organizadoracademico.data.local.entities.toDomain
 import com.example.organizadoracademico.data.local.entities.toEntity
-import com.example.organizadoracademico.data.local.util.DataInitializer
+import com.example.organizadoracademico.data.remote.ApiService
 import com.example.organizadoracademico.domain.model.Materia
 import com.example.organizadoracademico.domain.repository.IMateriaRepository
 import kotlinx.coroutines.CoroutineScope
@@ -15,25 +15,14 @@ import kotlinx.coroutines.launch
 
 class MateriaRepositoryImpl(
     private val dao: MateriaDao,
-    private val db: AppDatabase
+    private val apiService: ApiService
 ) : IMateriaRepository {
 
-    // CAMBIO: Ahora la función no recibe parámetros porque el catálogo es global
     override fun getAllMaterias(): Flow<List<Materia>> {
-        // Disparo de carga inicial global si la tabla está vacía
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                // Usamos el método global getCountGlobal que pusimos en el DAO
-                if (dao.getCountGlobal() == 0) {
-                    // Usamos el método que no pide userId
-                    DataInitializer(db).populateIfEmpty()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            syncMateriasDesdeBackend()
         }
 
-        // Retornamos todas las materias (sin filtrar por usuario)
         return dao.getAll().map { entities ->
             entities.map { it.toDomain() }
         }
@@ -45,5 +34,25 @@ class MateriaRepositoryImpl(
 
     override suspend fun deleteMateria(id: Int) {
         dao.deleteById(id)
+    }
+
+    private suspend fun syncMateriasDesdeBackend() {
+        runCatching {
+            val response = apiService.getMaterias()
+            if (!response.isSuccessful) return
+
+            response.body().orEmpty().forEach { dto ->
+                runCatching {
+                    dao.insert(
+                        MateriaEntity(
+                            id = dto.id,
+                            nombre = dto.nombre,
+                            color = dto.color,
+                            icono = dto.icono
+                        )
+                    )
+                }
+            }
+        }
     }
 }

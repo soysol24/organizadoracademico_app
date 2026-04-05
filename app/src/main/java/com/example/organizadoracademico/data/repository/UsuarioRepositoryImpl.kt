@@ -11,6 +11,7 @@ import com.example.organizadoracademico.data.remote.mapper.toDomain
 import com.example.organizadoracademico.domain.model.Usuario
 import com.example.organizadoracademico.domain.repository.IUsuarioRepository
 import com.example.organizadoracademico.push.PushTokenUploader
+import com.example.organizadoracademico.data.sync.SyncScheduler
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,8 @@ class UsuarioRepositoryImpl(
     private val dao: UsuarioDao,
     private val apiService: ApiService,
     private val sessionManager: SessionManager,
-    private val pushTokenUploader: PushTokenUploader
+    private val pushTokenUploader: PushTokenUploader,
+    private val syncScheduler: SyncScheduler
 ) : IUsuarioRepository {
 
     override suspend fun getUsuarioById(id: Int): Usuario? {
@@ -40,11 +42,12 @@ class UsuarioRepositoryImpl(
             sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
             dao.insert(usuario.toEntity())
             syncPushToken()
+            syncScheduler.scheduleNow()
             usuario
         } catch (_: Exception) {
             dao.getByEmail(email)?.toDomain()?.takeIf { it.password == password }?.also {
-                sessionManager.saveSession(it.id, it.nombre)
-                syncPushToken()
+                // Login local: permitimos uso offline, pero exigimos re-login online para sync privado.
+                sessionManager.saveOfflineSession(it.id, it.nombre)
             }
         }
     }
@@ -71,6 +74,7 @@ class UsuarioRepositoryImpl(
         sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
         dao.insert(usuario.toEntity())
         syncPushToken()
+        syncScheduler.scheduleNow()
         return usuario
     }
 

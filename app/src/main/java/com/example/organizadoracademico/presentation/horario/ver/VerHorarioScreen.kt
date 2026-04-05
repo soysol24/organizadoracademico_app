@@ -200,6 +200,15 @@ fun HorarioCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            if (horario.pendienteSync) {
+                Text(
+                    text = "Pendiente de subir",
+                    fontSize = 12.sp,
+                    color = TextoGris,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

@@ -23,7 +23,7 @@ class WorkManagerSyncScheduler(
     override fun scheduleNow() {
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_TIME_SYNC,
-            ExistingWorkPolicy.KEEP,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
             OneTimeWorkRequestBuilder<SyncWorker>()
                 .setConstraints(defaultConstraints())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
@@ -50,4 +50,3 @@ class WorkManagerSyncScheduler(
         private const val PERIODIC_SYNC = "organizador_sync_periodic"
     }
 }
-

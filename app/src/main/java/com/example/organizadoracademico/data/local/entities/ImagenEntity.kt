@@ -20,6 +20,12 @@ import com.example.organizadoracademico.domain.model.Imagen
             parentColumns = ["id"],
             childColumns = ["usuarioId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = HorarioEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["horarioId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -28,6 +34,7 @@ data class ImagenEntity(
     val remoteId: Int? = null,
     val materiaId: Int,
     val usuarioId: Int, // <-- AÑADIDO: Dueño de la foto
+    val horarioId: Int? = null,
     val uri: String,
     val nota: String? = null,
     val fecha: Long = System.currentTimeMillis(),
@@ -36,13 +43,14 @@ data class ImagenEntity(
 
 // Mapeadores actualizados
 fun ImagenEntity.toDomain(): Imagen = Imagen(
-    id, materiaId, usuarioId, uri, nota, fecha, favorita
+    id, materiaId, usuarioId, horarioId, uri, nota, fecha, favorita
 )
 
 fun Imagen.toEntity(): ImagenEntity = ImagenEntity(
     id = id,
     materiaId = materiaId,
     usuarioId = usuarioId,
+    horarioId = horarioId,
     uri = uri,
     nota = nota,
     fecha = fecha,

@@ -43,7 +43,15 @@ data class HorarioEntity(
 
 // Mapeadores corregidos
 fun HorarioEntity.toDomain(): Horario = Horario(
-    id, usuarioId, materiaId, profesorId, dia, horaInicio, horaFin, color
+    id = id,
+    usuarioId = usuarioId,
+    materiaId = materiaId,
+    profesorId = profesorId,
+    dia = dia,
+    horaInicio = horaInicio,
+    horaFin = horaFin,
+    color = color,
+    pendienteSync = remoteId == null
 )
 fun Horario.toEntity(): HorarioEntity = HorarioEntity(
     id = id,
