@@ -40,3 +40,4 @@ local.properties
 *service-account*.json
 *firebase-adminsdk*.json
 app/google-services.json
+/Backend
