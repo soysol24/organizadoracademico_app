@@ -2,6 +2,8 @@ package com.example.organizadoracademico.di
 
 import com.example.organizadoracademico.data.repository.*
 import com.example.organizadoracademico.domain.repository.*
+import com.example.organizadoracademico.push.PushTokenUploader
+import com.example.organizadoracademico.push.PushTokenUploaderImpl
 import com.example.organizadoracademico.domain.usercase.horario.*
 import com.example.organizadoracademico.domain.usercase.imagen.*
 import com.example.organizadoracademico.domain.usercase.materia.*
@@ -11,8 +13,6 @@ import com.example.organizadoracademico.domain.usercase.usuario.LoginUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.LogoutUseCase
 import com.example.organizadoracademico.domain.usercase.usuario.RegistroUseCase
 import com.example.organizadoracademico.domain.usercase.imagen.GetImagenUseCase
-import com.example.organizadoracademico.push.PushTokenUploader
-import com.example.organizadoracademico.push.PushTokenUploaderImpl
 import com.example.organizadoracademico.presentation.horario.crear.CrearHorarioViewModel
 import com.example.organizadoracademico.presentation.horario.ver.VerHorarioViewModel
 import com.example.organizadoracademico.presentation.imagen.camara.CamaraViewModel
@@ -31,7 +31,7 @@ val repositoryModule = module {
     single { com.example.organizadoracademico.data.local.util.SessionManager(get()) }
     single<PushTokenUploader> { PushTokenUploaderImpl(get(), get()) }
 
-    // REPOSITORIOS
+    // Repositorios
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
     single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get(), get(), get(), get()) }
@@ -40,18 +40,26 @@ val repositoryModule = module {
 }
 
 val useCaseModule = module {
-    factory { GetHorariosUseCase(get()) }
+    // Horarios
     factory { AddHorarioUseCase(get()) }
-    factory { UpdateHorarioUseCase(get()) }
+    factory { GetHorariosUseCase(get()) }
     factory { DeleteHorarioUseCase(get()) }
+    factory { UpdateHorarioUseCase(get()) }
+
+    // Materias y profesores
     factory { GetMateriasUseCase(get()) }
     factory { AddMateriaUseCase(get()) }
     factory { GetProfesoresUseCase(get()) }
+
+    // Imágenes
     factory { GetImagenesPorMateriaUseCase(get()) }
     factory { GetImagenUseCase(get()) }
     factory { SaveImagenConNotaUseCase(get()) }
     factory { UpdateNotaUseCase(get()) }
+    factory { ToggleFavoritaUseCase(get()) }
     factory { DeleteImagenUseCase(get()) }
+
+    // Usuario
     factory { LoginUseCase(get()) }
     factory { RegistroUseCase(get()) }
     factory { GetUsuarioUseCase(get()) }
@@ -74,7 +82,7 @@ val viewModelModule = module {
 
     // El resto se mantiene igual, ya los tenías bien actualizados:
     viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
-    viewModel { CrearHorarioViewModel(get(), get(), get(), get(), get()) }
+    viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get(), get()) }

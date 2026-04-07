@@ -2,10 +2,9 @@ package com.example.organizadoracademico.presentation.horario.crear
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.organizadoracademico.data.local.util.SessionManager
+import com.example.organizadoracademico.data.local.util.SessionManager // <-- Importante
 import com.example.organizadoracademico.domain.model.Horario
 import com.example.organizadoracademico.domain.usercase.horario.AddHorarioUseCase
-import com.example.organizadoracademico.domain.usercase.horario.GetHorariosUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
 import com.example.organizadoracademico.domain.usercase.profesor.GetProfesoresUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,22 +20,21 @@ import kotlinx.coroutines.launch
 class CrearHorarioViewModel(
     private val getMateriasUseCase: GetMateriasUseCase,
     private val getProfesoresUseCase: GetProfesoresUseCase,
-    private val getHorariosUseCase: GetHorariosUseCase,
     private val addHorarioUseCase: AddHorarioUseCase,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager // <-- 1. Inyectamos el SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CrearHorarioState())
     val state: StateFlow<CrearHorarioState> = _state.asStateFlow()
 
+    // 2. Obtenemos el ID del usuario actual
     private val userId = sessionManager.getUserId()
-    private var horariosExistentes: List<Horario> = emptyList()
 
     init {
         cargarDatosIniciales()
     }
 
-    // ... (onEvent se mantiene igual)
+    // ... (onEvent y cargarDatosIniciales se mantienen igual)
     fun onEvent(event: CrearHorarioEvent) {
         when (event) {
             is CrearHorarioEvent.CargarDatosIniciales -> cargarDatosIniciales()
@@ -70,12 +68,10 @@ class CrearHorarioViewModel(
 
         val materiasFlow = getMateriasUseCase()
         val profesoresFlow = getProfesoresUseCase()
-        val horariosFlow = getHorariosUseCase(userId)
 
-        combine(materiasFlow, profesoresFlow, horariosFlow) { materias, profesores, horarios ->
-            Triple(materias, profesores, horarios)
-        }.onEach { (materias, profesores, horarios) ->
-            horariosExistentes = horarios
+        combine(materiasFlow, profesoresFlow) { materias, profesores ->
+            Pair(materias, profesores)
+        }.onEach { (materias, profesores) ->
             _state.update {
                 it.copy(
                     materias = materias,
@@ -108,15 +104,11 @@ class CrearHorarioViewModel(
                 return@launch
             }
 
-            if (hasOverlap(_state.value.diaSeleccionado, _state.value.horaInicio, _state.value.horaFin)) {
-                _state.update { it.copy(errorMessage = "Ese horario se traslapa con otra clase existente") }
-                return@launch
-            }
-
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
+            // 3. AGREGAMOS EL usuarioId AL CONSTRUCTOR DEL HORARIO
             val horario = Horario(
-                usuarioId = userId,
+                usuarioId = userId, // <-- Aquí se soluciona el error
                 materiaId = materia.id,
                 profesorId = profesor.id,
                 dia = _state.value.diaSeleccionado,
@@ -135,30 +127,5 @@ class CrearHorarioViewModel(
                 }
             }
         }
-    }
-
-    private fun hasOverlap(dia: String, horaInicio: String, horaFin: String): Boolean {
-        val newStart = toMinutes(horaInicio) ?: return false
-        val newEnd = toMinutes(horaFin) ?: return false
-
-        return horariosExistentes
-            .asSequence()
-            .filter { it.dia.equals(dia, ignoreCase = true) }
-            .any { existing ->
-                val existingStart = toMinutes(existing.horaInicio) ?: return@any false
-                val existingEnd = toMinutes(existing.horaFin) ?: return@any false
-                newStart < existingEnd && newEnd > existingStart
-            }
-    }
-
-    private fun toMinutes(hourText: String): Int? {
-        val parts = hourText.split(":")
-        if (parts.size != 2) return null
-
-        val h = parts[0].trim().toIntOrNull() ?: return null
-        val m = parts[1].trim().toIntOrNull() ?: return null
-        if (h !in 0..23 || m !in 0..59) return null
-
-        return h * 60 + m
     }
 }

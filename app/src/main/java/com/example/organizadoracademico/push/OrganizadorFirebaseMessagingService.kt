@@ -23,7 +23,7 @@ class OrganizadorFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
 
-        Log.d(TAG, "TOKEN_FCM_DEL_DISPOSITIVO: $token")
+        //Log.d(TAG, "TOKEN_FCM_DEL_DISPOSITIVO: $token")
 
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
