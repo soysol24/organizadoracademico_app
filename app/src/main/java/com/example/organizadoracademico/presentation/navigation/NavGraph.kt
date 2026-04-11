@@ -48,6 +48,7 @@ fun NavGraph(
             RegistroScreen(navController = navController)
         }
 
+
         // --- PANTALLAS PRINCIPALES ---
         composable(route = Screen.Main.route) {
             MainScreen(navController = navController)

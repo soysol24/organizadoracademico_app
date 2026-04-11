@@ -20,3 +20,20 @@ val TextoGris = Color(0xFFB7B7C9)
 
 // Bordes
 val BordeNeon = Color(0xFF3D2A5A)
+
+object AppColors {
+    val colorBase = Color(0xFF6681EA)
+    val colorSecundario = Color(0xFF7E43AA)
+    val cardDark = Color(0xFF1A1A2E)
+    
+    fun fromNombre(nombre: String): Color {
+        return when (nombre) {
+            "Morado" -> Color(0xFFB967FF)
+            "Azul" -> Color(0xFF4361EE)
+            "Verde" -> Color(0xFF52B788)
+            "Naranja" -> Color(0xFFF48C06)
+            "Rojo" -> Color(0xFFE83F6F)
+            else -> Color(0xFFB967FF)
+        }
+    }
+}

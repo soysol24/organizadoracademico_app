@@ -1,22 +1,29 @@
 package com.example.organizadoracademico.presentation.perfil
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.organizadoracademico.presentation.theme.*
-import com.example.organizadoracademico.presentation.animation.pulseEffect
+import com.example.organizadoracademico.presentation.navigation.Screen
 import org.koin.androidx.compose.koinViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,376 +32,271 @@ fun PerfilScreen(
     viewModel: PerfilViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    var mostrarDialogoCerrarSesion by remember { mutableStateOf(false) }
 
-    // Manejar mensajes de error con Snackbar
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            val result = snackbarHostState.showSnackbar(
-                message = it,
-                actionLabel = "OK"
-            )
-            if (result == SnackbarResult.ActionPerformed || result == SnackbarResult.Dismissed) {
-                viewModel.onEvent(PerfilEvent.ResetError)
+    val colorBase = Color(0xFF6681EA)
+    val colorSecundario = Color(0xFF7E43AA)
+    val neonGlow = colorSecundario.copy(alpha = 0.5f)
+    val cardDark = Color(0xFF1A1A2E)
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val animatedOffset by infiniteTransition.animateFloat(
+        initialValue = -0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    // Navegar al login cuando el usuario sea nulo (después de cerrar sesión)
+    LaunchedEffect(state.usuario, state.isLoading) {
+        if (state.usuario == null && !state.isLoading) {
+            navController.navigate(Screen.Login.route) {
+                // Limpia toda la pila de navegación para que no se pueda volver atrás
+                popUpTo(0) { inclusive = true }
             }
         }
     }
 
-    // Navegar al login cuando cierra sesión
-    LaunchedEffect(state.isLoggingOut) {
-        if (state.isLoggingOut == false && state.usuario == null) {
-            navController.navigate("login") {
-                popUpTo("main") { inclusive = true }
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("PERFIL", color = TextoBlanco) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Text("←", fontSize = 24.sp, color = TextoBlanco)
+    // Diálogo de confirmación para cerrar sesión
+    if (mostrarDialogoCerrarSesion) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoCerrarSesion = false },
+            title = {
+                Text(
+                    text = "Cerrar sesión",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Seguro que quieres cerrar sesión?",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDialogoCerrarSesion = false
+                        viewModel.onEvent(PerfilEvent.CerrarSesion)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SuperficieCards
+                ) {
+                    Text(
+                        text = "Cerrar sesión",
+                        color = Color(0xFFEF4444),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoCerrarSesion = false }) {
+                    Text(
+                        text = "Cancelar",
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = cardDark,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colorBase)
+    ) {
+        // Gradiente animado
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            colorSecundario.copy(alpha = 0.9f),
+                            colorSecundario.copy(alpha = 0.5f),
+                            Color.Transparent
+                        ),
+                        start = Offset(animatedOffset * 1500f, 0f),
+                        end = Offset((animatedOffset + 0.4f) * 1500f, 1200f)
+                    )
+                )
+        )
+
+        // Elementos flotantes
+        repeat(12) { index ->
+            val animatedY by infiniteTransition.animateFloat(
+                initialValue = (-150).dp.value,
+                targetValue = 1500.dp.value,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = (4000 + index * 800),
+                        easing = LinearEasing
+                    ),
+                    repeatMode = RepeatMode.Restart
                 )
             )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = SuperficieCards,
-                    contentColor = TextoBlanco,
-                    actionColor = MoradoNeon,
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
+
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = (30 + index * 70).dp,
+                        y = animatedY.dp
+                    )
+                    .size((12 + index * 6).dp)
+                    .background(
+                        Color.White.copy(alpha = 0.12f),
+                        CircleShape
+                    )
+            )
         }
-    ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(FondoPrincipal)
-                .padding(paddingValues)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            // Header con flecha atrás y título centrado
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                // Flecha atrás (izquierda)
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    CircularProgressIndicator(color = MoradoNeon)
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Atrás",
+                        tint = Color.White
+                    )
                 }
-            } else {
-                // Contenido del perfil
-                LazyColumn(
+
+                // Título centrado
+                Text(
+                    text = "PERFIL",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Avatar
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Usuario",
+                    tint = Color.White,
+                    modifier = Modifier.size(50.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Nombre
+            Text(
+                text = state.usuario?.nombre?.uppercase() ?: "USUARIO",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Email
+            Text(
+                text = state.usuario?.email ?: "correo@ejemplo.com",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Card para CERRAR SESIÓN (estilo primera imagen - solo ícono + texto)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 20.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = neonGlow,
+                        spotColor = neonGlow
+                    )
+                    .clickable { mostrarDialogoCerrarSesion = true },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = cardDark
+                )
+            ) {
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Foto de perfil
-                    item {
-                        ProfileHeader(usuario = state.usuario?.nombre ?: "Usuario")
-                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Cerrar sesión",
+                            tint = colorBase ,
+                            modifier = Modifier.size(28.dp)
+                        )
 
-                    // Estadísticas
-                    item {
-                        StatsCards(
-                            materias = state.totalMaterias,
-                            horarios = state.totalHorarios,
-                            imagenes = state.totalImagenes
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Text(
+                            text = "CERRAR SESIÓN",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
 
-                    // Configuración
-                    item {
-                        ConfigurationSection(
-                            vibracion = state.vibracionActivada,
-                            sonido = state.sonidoActivado,
-                            notificaciones = state.notificacionesActivadas,
-                            onVibracionChange = {
-                                viewModel.onEvent(PerfilEvent.ToggleVibracion(it))
-                            },
-                            onSonidoChange = {
-                                viewModel.onEvent(PerfilEvent.ToggleSonido(it))
-                            },
-                            onNotificacionesChange = {
-                                viewModel.onEvent(PerfilEvent.ToggleNotificaciones(it))
-                            }
-                        )
-                    }
-
-                    // Botón cerrar sesión
-                    item {
-                        LogoutButton(
-                            onClick = { viewModel.onEvent(PerfilEvent.CerrarSesion) },
-                            isLoading = state.isLoggingOut
-                        )
-                    }
-
-                    // Espacio al final
-                    item { Spacer(modifier = Modifier.height(20.dp)) }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Ir",
+                        tint = colorBase ,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun ProfileHeader(usuario: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MoradoNeon.copy(alpha = 0.2f))
-                .pulseEffect(true),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "👤",
-                fontSize = 48.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = usuario.uppercase(),
-            fontSize = 24.sp,
-            color = TextoBlanco,
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Text(
-            text = "MIEMBRO DESDE: FEB 2026",
-            fontSize = 12.sp,
-            color = TextoGris,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-    }
-}
-
-@Composable
-fun StatsCards(
-    materias: Int,
-    horarios: Int,
-    imagenes: Int
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SuperficieCards
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatItem(valor = materias.toString(), label = "MATERIAS")
-            StatItem(valor = horarios.toString(), label = "HORARIOS")
-            StatItem(valor = imagenes.toString(), label = "FOTOS")
-        }
-    }
-}
-
-@Composable
-fun StatItem(valor: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = valor,
-            fontSize = 24.sp,
-            color = MoradoNeon,
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = TextoGris
-        )
-    }
-}
-
-@Composable
-fun ConfigurationSection(
-    vibracion: Boolean,
-    sonido: Boolean,
-    notificaciones: Boolean,
-    onVibracionChange: (Boolean) -> Unit,
-    onSonidoChange: (Boolean) -> Unit,
-    onNotificacionesChange: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = SuperficieCards
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "⚙️ CONFIGURACIÓN",
-                fontSize = 16.sp,
-                color = MoradoNeon,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            // Opción Vibración
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "📳",
-                        fontSize = 20.sp,
-                        modifier = Modifier.width(32.dp)
-                    )
-                    Text(
-                        text = "Vibración",
-                        fontSize = 16.sp,
-                        color = TextoBlanco
-                    )
-                }
-                Switch(
-                    checked = vibracion,
-                    onCheckedChange = onVibracionChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MoradoNeon,
-                        checkedTrackColor = MoradoNeon.copy(alpha = 0.5f)
-                    )
+            if (state.errorMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = state.errorMessage!!,
+                    color = Color(0xFFEF4444),
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
                 )
             }
 
-            Divider(
-                color = BordeNeon,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-
-            // Opción Sonido
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "🔊",
-                        fontSize = 20.sp,
-                        modifier = Modifier.width(32.dp)
-                    )
-                    Text(
-                        text = "Sonido",
-                        fontSize = 16.sp,
-                        color = TextoBlanco
-                    )
-                }
-                Switch(
-                    checked = sonido,
-                    onCheckedChange = onSonidoChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MoradoNeon,
-                        checkedTrackColor = MoradoNeon.copy(alpha = 0.5f)
-                    )
-                )
+            if (state.isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator(color = colorBase, modifier = Modifier.size(32.dp))
             }
-
-            Divider(
-                color = BordeNeon,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-
-            // Opción Notificaciones
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "🔔",
-                        fontSize = 20.sp,
-                        modifier = Modifier.width(32.dp)
-                    )
-                    Text(
-                        text = "Notificaciones",
-                        fontSize = 16.sp,
-                        color = TextoBlanco
-                    )
-                }
-                Switch(
-                    checked = notificaciones,
-                    onCheckedChange = onNotificacionesChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MoradoNeon,
-                        checkedTrackColor = MoradoNeon.copy(alpha = 0.5f)
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun LogoutButton(
-    onClick: () -> Unit,
-    isLoading: Boolean
-) {
-    Button(
-        onClick = onClick,
-        enabled = !isLoading,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = RosaNeon.copy(alpha = 0.2f)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .pulseEffect(!isLoading)
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                color = RosaNeon,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            Text(
-                text = "📤 CERRAR SESIÓN",
-                fontSize = 16.sp,
-                color = RosaNeon
-            )
         }
     }
 }

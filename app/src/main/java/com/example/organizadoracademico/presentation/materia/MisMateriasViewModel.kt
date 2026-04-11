@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MisMateriasViewModel(
@@ -88,6 +89,7 @@ class MisMateriasViewModel(
             .launchIn(viewModelScope)
     }
 
+
     fun getUltimasImagenes(materiaId: Int, limite: Int = 6): List<Imagen> =
         _state.value.imagenesPorMateria[materiaId]?.take(limite) ?: emptyList()
 
@@ -100,6 +102,22 @@ class MisMateriasViewModel(
             val ultima = imagenes.maxByOrNull { it.fecha }
             val formatter = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
             "Última: ${formatter.format(Date(ultima?.fecha ?: 0))}"
+        }
+        fun getMateriasFiltradas(query: String): List<Materia> {
+            val materias = state.value.materias
+            return if (query.isEmpty()) {
+                materias
+            } else {
+                materias.filter { it.nombre.contains(query, ignoreCase = true) }
+            }
+        }
+    }
+    fun getMateriasFiltradas(query: String): List<Materia> {
+        val materias = state.value.materias
+        return if (query.isEmpty()) {
+            materias
+        } else {
+            materias.filter { it.nombre.contains(query, ignoreCase = true) }
         }
     }
 }

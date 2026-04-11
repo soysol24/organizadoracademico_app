@@ -1,24 +1,35 @@
 package com.example.organizadoracademico.presentation.login
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.organizadoracademico.presentation.navigation.Screen
-import com.example.organizadoracademico.presentation.theme.FondoPrincipal
-import com.example.organizadoracademico.presentation.theme.MoradoNeon
-import com.example.organizadoracademico.presentation.theme.TextoBlanco
-import com.example.organizadoracademico.presentation.theme.TextoGris
-import com.example.organizadoracademico.presentation.animation.pulseEffect
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,7 +41,25 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Navegar cuando el login es exitoso
+    var passwordVisible by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val colorBase = Color(0xFF6681EA)
+    val colorSecundario = Color(0xFF7E43AA)
+
+    val neonGlow = colorSecundario.copy(alpha = 0.5f)
+    val cardDark = Color(0xFF1A1A2E)
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val animatedOffset by infiniteTransition.animateFloat(
+        initialValue = -0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
     LaunchedEffect(state.isLoginSuccess) {
         if (state.isLoginSuccess) {
             onLoginSuccess()
@@ -40,46 +69,81 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoPrincipal),
-        contentAlignment = Alignment.Center
+            .background(colorBase)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
+                .fillMaxSize()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            colorSecundario.copy(alpha = 0.9f),
+                            colorSecundario.copy(alpha = 0.5f),
+                            Color.Transparent
+                        ),
+                        start = Offset(animatedOffset * 1500f, 0f),
+                        end = Offset((animatedOffset + 0.4f) * 1500f, 1200f)
+                    )
+                )
+        )
+
+        repeat(12) { index ->
+            val animatedY by infiniteTransition.animateFloat(
+                initialValue = (-150).dp.value,
+                targetValue = 1500.dp.value,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = (4000 + index * 800),
+                        easing = LinearEasing
+                    ),
+                    repeatMode = RepeatMode.Restart
+                )
+            )
+
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = (30 + index * 70).dp,
+                        y = animatedY.dp
+                    )
+                    .size((12 + index * 6).dp)
+                    .background(
+                        Color.White.copy(alpha = 0.12f),
+                        CircleShape
+                    )
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Logo / Icono
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MoradoNeon.copy(alpha = 0.2f)),
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "⚡",
-                    fontSize = 48.sp,
-                    color = MoradoNeon
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Usuario",
+                    tint = Color.White,
+                    modifier = Modifier.size(50.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Título
             Text(
-                text = "¡HOLA DE NUEVO",
+                text = "¡HOLA DE NUEVO!",
                 fontSize = 24.sp,
-                color = TextoGris,
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Text(
-                text = "SOL",
-                fontSize = 32.sp,
-                color = TextoBlanco,
-                style = MaterialTheme.typography.headlineLarge
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -87,110 +151,131 @@ fun LoginScreen(
             Text(
                 text = "TE ECHAMOS DE MENOS",
                 fontSize = 14.sp,
-                color = MoradoNeon,
-                style = MaterialTheme.typography.bodyLarge
+                color = Color.White.copy(alpha = 0.7f)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Campo Email
-            OutlinedTextField(
-                value = state.email,
-                onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
-                placeholder = { Text("correo@ejemplo.com", color = TextoGris) },
-                leadingIcon = { Text("✉️", color = MoradoNeon) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedBorderColor = MoradoNeon,
-                    unfocusedBorderColor = TextoGris,
-                    focusedTextColor = TextoBlanco,
-                    unfocusedTextColor = TextoBlanco
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo Password
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
-                placeholder = { Text("••••••••", color = TextoGris) },
-                leadingIcon = { Text("🔒", color = MoradoNeon) },
-                visualTransformation = PasswordVisualTransformation(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedBorderColor = MoradoNeon,
-                    unfocusedBorderColor = TextoGris,
-                    focusedTextColor = TextoBlanco,
-                    unfocusedTextColor = TextoBlanco
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Mensaje de error
-            if (state.errorMessage != null) {
-                Text(
-                    text = state.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
-            // Botón de login
-            Button(
-                onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
-                enabled = !state.isLoading,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MoradoNeon
-                ),
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .pulseEffect(!state.isLoading)
+                    .shadow(
+                        elevation = 20.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = neonGlow,
+                        spotColor = neonGlow
+                    ),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = cardDark
+                )
             ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(
-                        color = TextoBlanco,
-                        modifier = Modifier.size(24.dp)
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = state.email,
+                        onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
+                        label = { Text("Correo electrónico", color = Color.White.copy(alpha = 0.7f)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Email",
+                                tint = colorBase
+                            )
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colorBase,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
                     )
-                } else {
-                    Text(
-                        text = "INICIAR SESIÓN",
-                        fontSize = 16.sp,
-                        color = TextoBlanco
+
+                    OutlinedTextField(
+                        value = state.password,
+                        onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+                        label = { Text("Contraseña", color = Color.White.copy(alpha = 0.7f)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Contraseña",
+                                tint = colorBase
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = "Mostrar/Ocultar",
+                                modifier = Modifier.clickable { passwordVisible = !passwordVisible },
+                                tint = colorBase
+                            )
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colorBase,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
                     )
+
+                    if (state.errorMessage != null) {
+                        Text(
+                            text = state.errorMessage!!,
+                            color = Color(0xFFEF4444),
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
+                        enabled = !state.isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorBase
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "INICIAR SESIÓN",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Línea decorativa
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(TextoGris.copy(alpha = 0.3f))
-            )
-
-            // BOTÓN DE REGISTRO (nuevo)
             TextButton(
-                onClick = {
-                    navController.navigate(Screen.Registro.route)  // <-- Navega a registro
-                },
-                modifier = Modifier.padding(top = 16.dp)
+                onClick = { navController.navigate(Screen.Registro.route) },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(Color.White.copy(alpha = 0.1f))
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = "¿No tienes cuenta? Regístrate",
-                    color = MoradoNeon
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
