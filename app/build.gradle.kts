@@ -96,5 +96,8 @@ dependencies {
 
     // Image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+        // Material Icons Extended (para tener todos los íconos)
+        implementation("androidx.compose.material:material-icons-extended:1.7.5")
+    }
 
-}
+

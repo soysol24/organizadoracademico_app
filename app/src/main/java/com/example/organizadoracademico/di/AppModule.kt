@@ -69,23 +69,21 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModel { LoginViewModel(get()) }
     viewModel { RegistroViewModel(get()) }
-    viewModel { MainViewModel(get()) }
-
+    viewModel { MainViewModel(get(), get(), get(), get()) }
     viewModel {
         MisMateriasViewModel(
             getMateriasUseCase = get(),
-            getHorariosUseCase = get(), // <--- Agregamos este get()
+            getHorariosUseCase = get(),
             getImagenesPorMateriaUseCase = get(),
             sessionManager = get()
         )
     }
 
-    // El resto se mantiene igual, ya los tenías bien actualizados:
     viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
     viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get(), get()) }
-    viewModel { PerfilViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { PerfilViewModel(get(), get(), get(), get()) }
     viewModel { DetalleImagenViewModel(get(), get(), get(), get(), get()) }
 }
