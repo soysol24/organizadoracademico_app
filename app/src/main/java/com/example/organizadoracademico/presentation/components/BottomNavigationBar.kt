@@ -45,7 +45,7 @@ fun BottomNavigationBar(
                 onClick = { navController.navigate(Screen.Main.route) }
             )
             BottomNavItem(
-                icon = Icons.Default.CalendarToday,
+                icon = Icons.Default.DateRange,
                 label = "Horario",
                 isSelected = currentRoute == Screen.VerHorario.route,
                 onClick = { navController.navigate(Screen.VerHorario.route) }
@@ -57,7 +57,7 @@ fun BottomNavigationBar(
                 onClick = { navController.navigate(Screen.CrearHorario.route) }
             )
             BottomNavItem(
-                icon = Icons.Default.Folder,
+                icon = Icons.Default.Create,
                 label = "Materias",
                 isSelected = currentRoute == Screen.MisMaterias.route,
                 onClick = { navController.navigate(Screen.MisMaterias.route) }
