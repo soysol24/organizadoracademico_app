@@ -34,7 +34,7 @@ val repositoryModule = module {
     // Repositorios
     single<IMateriaRepository> { MateriaRepositoryImpl(get(), get()) }
     single<IProfesorRepository> { ProfesorRepositoryImpl(get(), get()) }
-    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get(), get(), get(), get()) }
+    single<IHorarioRepository> { HorarioRepositoryImpl(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<IImagenRepository> { ImagenRepositoryImpl(get(), get(), get(), get(), get()) }
     single<IUsuarioRepository> { UsuarioRepositoryImpl(get(), get(), get(), get(), get()) }
 }

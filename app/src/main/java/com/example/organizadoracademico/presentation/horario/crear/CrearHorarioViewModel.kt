@@ -27,9 +27,6 @@ class CrearHorarioViewModel(
     private val _state = MutableStateFlow(CrearHorarioState())
     val state: StateFlow<CrearHorarioState> = _state.asStateFlow()
 
-    // 2. Obtenemos el ID del usuario actual
-    private val userId = sessionManager.getUserId()
-
     init {
         cargarDatosIniciales()
     }
@@ -91,15 +88,28 @@ class CrearHorarioViewModel(
 
     private fun guardarHorario() {
         viewModelScope.launch {
+            val userId = sessionManager.getUserId()
             val materia = _state.value.materiaSeleccionada
             val profesor = _state.value.profesorSeleccionado
+
+            if (userId <= 0) {
+                _state.update { it.copy(errorMessage = "Sesion invalida. Vuelve a iniciar sesion") }
+                return@launch
+            }
 
             if (materia == null || profesor == null) {
                 _state.update { it.copy(errorMessage = "Debes seleccionar materia y profesor") }
                 return@launch
             }
 
-            if (_state.value.horaInicio >= _state.value.horaFin) {
+            val horaInicioMin = parseHourToMinutes(_state.value.horaInicio)
+            val horaFinMin = parseHourToMinutes(_state.value.horaFin)
+            if (horaInicioMin == null || horaFinMin == null) {
+                _state.update { it.copy(errorMessage = "Formato de hora invalido") }
+                return@launch
+            }
+
+            if (horaInicioMin >= horaFinMin) {
                 _state.update { it.copy(errorMessage = "La hora fin debe ser mayor a la hora inicio") }
                 return@launch
             }
@@ -112,8 +122,8 @@ class CrearHorarioViewModel(
                 materiaId = materia.id,
                 profesorId = profesor.id,
                 dia = _state.value.diaSeleccionado,
-                horaInicio = _state.value.horaInicio,
-                horaFin = _state.value.horaFin,
+                horaInicio = normalizeHour(_state.value.horaInicio),
+                horaFin = normalizeHour(_state.value.horaFin),
                 color = _state.value.colorSeleccionado
             )
 
@@ -127,5 +137,21 @@ class CrearHorarioViewModel(
                 }
             }
         }
+    }
+
+    private fun parseHourToMinutes(hora: String): Int? {
+        val parts = hora.split(":")
+        if (parts.size != 2) return null
+        val h = parts[0].trim().toIntOrNull() ?: return null
+        val m = parts[1].trim().toIntOrNull() ?: return null
+        if (h !in 0..23 || m !in 0..59) return null
+        return h * 60 + m
+    }
+
+    private fun normalizeHour(hora: String): String {
+        val minutes = parseHourToMinutes(hora) ?: return hora
+        val h = minutes / 60
+        val m = minutes % 60
+        return String.format("%02d:%02d", h, m)
     }
 }

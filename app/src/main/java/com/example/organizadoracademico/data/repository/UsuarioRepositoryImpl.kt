@@ -1,5 +1,6 @@
 package com.example.organizadoracademico.data.repository
 
+import android.util.Log
 import com.example.organizadoracademico.data.local.dao.UsuarioDao
 import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.data.local.entities.toDomain
@@ -58,24 +59,29 @@ class UsuarioRepositoryImpl(
         password: String,
         fotoPerfil: String?
     ): Usuario? {
-        val response = apiService.register(
-            RegisterRequestDto(
-                nombre = nombre,
-                email = email,
-                password = password,
-                fotoPerfil = fotoPerfil
+        return try {
+            val response = apiService.register(
+                RegisterRequestDto(
+                    nombre = nombre,
+                    email = email,
+                    password = password,
+                    fotoPerfil = fotoPerfil
+                )
             )
-        )
 
-        if (!response.isSuccessful) return null
+            if (!response.isSuccessful) return null
 
-        val body = response.body() ?: return null
-        val usuario = body.user.toDomain()
-        sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
-        dao.insert(usuario.toEntity())
-        syncPushToken()
-        syncScheduler.scheduleNow()
-        return usuario
+            val body = response.body() ?: return null
+            val usuario = body.user.toDomain().copy(password = password)
+            sessionManager.saveSession(usuario.id, usuario.nombre, body.token)
+            dao.insert(usuario.toEntity())
+            syncPushToken()
+            syncScheduler.scheduleNow()
+            usuario
+        } catch (e: Exception) {
+            Log.e(TAG, "register: exception", e)
+            null
+        }
     }
 
     override suspend fun logout() {
@@ -97,5 +103,9 @@ class UsuarioRepositoryImpl(
                 runCatching { pushTokenUploader.uploadToken(token) }
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "USUARIO_REPO"
     }
 }

@@ -7,7 +7,7 @@ fun AuthUserDto.toDomain(): Usuario = Usuario(
     id = id,
     nombre = nombre,
     email = email,
-    password = password,
+    password = password.orEmpty(),
     fotoPerfil = fotoPerfil
 )
 

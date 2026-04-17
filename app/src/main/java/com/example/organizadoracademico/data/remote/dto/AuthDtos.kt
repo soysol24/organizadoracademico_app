@@ -18,13 +18,13 @@ data class AuthUserDto(
     val id: Int,
     val nombre: String,
     val email: String,
-    val password: String,
+    val password: String? = null,
     val fotoPerfil: String? = null
 )
 
 data class AuthResponseDto(
-    @SerializedName("user") val user: AuthUserDto,
-    @SerializedName("token") val token: String
+    @SerializedName(value = "user", alternate = ["usuario"]) val user: AuthUserDto,
+    @SerializedName(value = "token", alternate = ["accessToken"]) val token: String? = null
 )
 
 data class ErrorResponseDto(

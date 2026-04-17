@@ -39,7 +39,8 @@ class ProfesorRepositoryImpl(
 
             response.body().orEmpty().forEach { dto ->
                 runCatching {
-                    dao.insert(ProfesorEntity(id = dto.id, nombre = dto.nombre))
+                    val existing = dao.getByNombre(dto.nombre)
+                    dao.insert(ProfesorEntity(id = existing?.id ?: 0, nombre = dto.nombre))
                 }
             }
         }

@@ -5,9 +5,11 @@ import com.example.organizadoracademico.data.local.dao.HorarioDao
 import com.example.organizadoracademico.data.local.dao.MateriaDao
 import com.example.organizadoracademico.data.local.dao.ProfesorDao
 import com.example.organizadoracademico.data.local.dao.SyncQueueDao
+import com.example.organizadoracademico.data.local.dao.UsuarioDao
 import com.example.organizadoracademico.data.local.entities.MateriaEntity
 import com.example.organizadoracademico.data.local.entities.ProfesorEntity
 import com.example.organizadoracademico.data.local.entities.SyncQueueEntity
+import com.example.organizadoracademico.data.local.entities.UsuarioEntity
 import com.example.organizadoracademico.data.local.entities.toDomain
 import com.example.organizadoracademico.data.local.entities.toEntity
 import com.example.organizadoracademico.data.remote.ApiService
@@ -31,6 +33,7 @@ class HorarioRepositoryImpl(
     private val apiService: ApiService,
     private val materiaDao: MateriaDao,
     private val profesorDao: ProfesorDao,
+    private val usuarioDao: UsuarioDao,
     private val syncQueueDao: SyncQueueDao,
     private val syncScheduler: SyncScheduler,
     private val sessionManager: SessionManager
@@ -53,6 +56,7 @@ class HorarioRepositoryImpl(
     }
 
     override suspend fun insertHorario(horario: Horario) {
+        ensureLocalReferencesForInsert(horario)
         val localId = dao.insertAndReturnId(horario.toEntity()).toInt()
         Log.d(TAG, "insertHorario: localId=$localId materia=${horario.materiaId} profesor=${horario.profesorId}")
         syncQueueDao.insert(
@@ -63,6 +67,29 @@ class HorarioRepositoryImpl(
             )
         )
         syncScheduler.scheduleNow()
+    }
+
+    private suspend fun ensureLocalReferencesForInsert(horario: Horario) {
+        val user = usuarioDao.getById(horario.usuarioId)
+        if (user == null) {
+            val sessionName = sessionManager.getUserName().orEmpty().ifBlank { "Usuario" }
+            val placeholderEmail = "local_${horario.usuarioId}@placeholder.local"
+            usuarioDao.insert(
+                UsuarioEntity(
+                    id = horario.usuarioId,
+                    nombre = sessionName,
+                    email = placeholderEmail,
+                    password = ""
+                )
+            )
+            Log.w(TAG, "insertHorario: usuario local faltante, se creo placeholder userId=${horario.usuarioId}")
+        }
+
+        val materia = materiaDao.getById(horario.materiaId)
+        requireNotNull(materia) { "Materia local no encontrada id=${horario.materiaId}" }
+
+        val profesor = profesorDao.getById(horario.profesorId)
+        requireNotNull(profesor) { "Profesor local no encontrado id=${horario.profesorId}" }
     }
 
     override suspend fun deleteHorario(id: Int) {
@@ -132,7 +159,7 @@ class HorarioRepositoryImpl(
     private suspend fun syncHorarios(userId: Int) {
         try {
             // Evita errores FK al insertar horarios remotos cuando aún no existe catálogo local.
-            syncCatalogosBase()
+            val (materiaIdMap, profesorIdMap) = syncCatalogosBase()
 
             val response = apiService.getHorarios()
             Log.d(TAG, "syncHorarios: http=${response.code()} ok=${response.isSuccessful}")
@@ -158,6 +185,16 @@ class HorarioRepositoryImpl(
             remoteItems
                 // El backend ya filtra por el usuario del token; no dependemos del userId local remoto.
                 .forEach { dto ->
+                    val localMateriaId = materiaIdMap[dto.materiaId]
+                    val localProfesorId = profesorIdMap[dto.profesorId]
+                    if (localMateriaId == null || localProfesorId == null) {
+                        Log.w(
+                            TAG,
+                            "syncHorarios: sin mapeo local remoteHorario=${dto.id} remoteMateria=${dto.materiaId} remoteProfesor=${dto.profesorId}"
+                        )
+                        return@forEach
+                    }
+
                     val existing = dao.getByRemoteId(dto.id)
                     if (existing != null && existing.id in pendingUpdateLocalIds) {
                         Log.d(TAG, "syncHorarios: skip remoteId=${dto.id} por update pendiente localId=${existing.id}")
@@ -167,8 +204,8 @@ class HorarioRepositoryImpl(
                     val merged = if (existing != null) {
                         existing.copy(
                             usuarioId = userId,
-                            materiaId = dto.materiaId,
-                            profesorId = dto.profesorId,
+                            materiaId = localMateriaId,
+                            profesorId = localProfesorId,
                             dia = dto.dia,
                             horaInicio = dto.horaInicio,
                             horaFin = dto.horaFin,
@@ -178,7 +215,13 @@ class HorarioRepositoryImpl(
                     } else {
                         dto.remoteToDomain()
                             .toEntity()
-                            .copy(id = 0, usuarioId = userId, remoteId = dto.id)
+                            .copy(
+                                id = 0,
+                                usuarioId = userId,
+                                materiaId = localMateriaId,
+                                profesorId = localProfesorId,
+                                remoteId = dto.id
+                            )
                     }
                     try {
                         dao.insert(merged)
@@ -192,20 +235,27 @@ class HorarioRepositoryImpl(
         }
     }
 
-    private suspend fun syncCatalogosBase() {
+    private suspend fun syncCatalogosBase(): Pair<Map<Int, Int>, Map<Int, Int>> {
+        val materiaIdMap = mutableMapOf<Int, Int>()
+        val profesorIdMap = mutableMapOf<Int, Int>()
+
         runCatching {
             val materiasResponse = apiService.getMaterias()
             Log.d(TAG, "syncCatalogosBase.materias: http=${materiasResponse.code()} ok=${materiasResponse.isSuccessful}")
             val materias = materiasResponse.body().orEmpty()
             materias.forEach { dto ->
+                val existing = materiaDao.getByNombre(dto.nombre)
                 materiaDao.insert(
                     MateriaEntity(
-                        id = dto.id,
+                        id = existing?.id ?: 0,
                         nombre = dto.nombre,
                         color = dto.color,
                         icono = dto.icono
                     )
                 )
+                materiaDao.getByNombre(dto.nombre)?.id?.let { localId ->
+                    materiaIdMap[dto.id] = localId
+                }
             }
             Log.d(TAG, "syncCatalogosBase.materias: upsert=${materias.size}")
         }.onFailure { e ->
@@ -217,12 +267,18 @@ class HorarioRepositoryImpl(
             Log.d(TAG, "syncCatalogosBase.profesores: http=${profesoresResponse.code()} ok=${profesoresResponse.isSuccessful}")
             val profesores = profesoresResponse.body().orEmpty()
             profesores.forEach { dto ->
-                profesorDao.insert(ProfesorEntity(id = dto.id, nombre = dto.nombre))
+                val existing = profesorDao.getByNombre(dto.nombre)
+                profesorDao.insert(ProfesorEntity(id = existing?.id ?: 0, nombre = dto.nombre))
+                profesorDao.getByNombre(dto.nombre)?.id?.let { localId ->
+                    profesorIdMap[dto.id] = localId
+                }
             }
             Log.d(TAG, "syncCatalogosBase.profesores: upsert=${profesores.size}")
         }.onFailure { e ->
             Log.e(TAG, "syncCatalogosBase.profesores: exception", e)
         }
+
+        return materiaIdMap to profesorIdMap
     }
 
     companion object {

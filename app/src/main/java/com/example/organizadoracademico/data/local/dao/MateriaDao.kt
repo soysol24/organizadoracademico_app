@@ -18,6 +18,9 @@ interface MateriaDao {
     @Query("SELECT * FROM materias WHERE id = :id LIMIT 1")
     suspend fun getById(id: Int): MateriaEntity?
 
+    @Query("SELECT * FROM materias WHERE nombre = :nombre LIMIT 1")
+    suspend fun getByNombre(nombre: String): MateriaEntity?
+
     @Query("DELETE FROM materias WHERE id = :id")
     suspend fun deleteById(id: Int)
 

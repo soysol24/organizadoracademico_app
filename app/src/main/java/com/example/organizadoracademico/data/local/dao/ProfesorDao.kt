@@ -20,4 +20,7 @@ interface ProfesorDao {
 
     @Query("SELECT * FROM profesores WHERE id = :id LIMIT 1")
     suspend fun getById(id: Int): ProfesorEntity?
+
+    @Query("SELECT * FROM profesores WHERE nombre = :nombre LIMIT 1")
+    suspend fun getByNombre(nombre: String): ProfesorEntity?
 }

@@ -43,9 +43,10 @@ class MateriaRepositoryImpl(
 
             response.body().orEmpty().forEach { dto ->
                 runCatching {
+                    val existing = dao.getByNombre(dto.nombre)
                     dao.insert(
                         MateriaEntity(
-                            id = dto.id,
+                            id = existing?.id ?: 0,
                             nombre = dto.nombre,
                             color = dto.color,
                             icono = dto.icono
