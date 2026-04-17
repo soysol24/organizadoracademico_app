@@ -3,8 +3,10 @@ package com.example.organizadoracademico.presentation.horario.crear
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.organizadoracademico.data.local.util.SessionManager // <-- Importante
+import com.example.organizadoracademico.domain.exception.HorarioDuplicadoException
 import com.example.organizadoracademico.domain.model.Horario
 import com.example.organizadoracademico.domain.usercase.horario.AddHorarioUseCase
+import com.example.organizadoracademico.domain.usercase.horario.ValidateHorarioTraslapeUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
 import com.example.organizadoracademico.domain.usercase.profesor.GetProfesoresUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ class CrearHorarioViewModel(
     private val getMateriasUseCase: GetMateriasUseCase,
     private val getProfesoresUseCase: GetProfesoresUseCase,
     private val addHorarioUseCase: AddHorarioUseCase,
+    private val validateHorarioTraslapeUseCase: ValidateHorarioTraslapeUseCase,
     private val sessionManager: SessionManager // <-- 1. Inyectamos el SessionManager
 ) : ViewModel() {
 
@@ -114,6 +117,21 @@ class CrearHorarioViewModel(
                 return@launch
             }
 
+            val horaInicioNormalizada = normalizeHour(_state.value.horaInicio)
+            val horaFinNormalizada = normalizeHour(_state.value.horaFin)
+            val existeTraslape = validateHorarioTraslapeUseCase(
+                usuarioId = userId,
+                dia = _state.value.diaSeleccionado,
+                horaInicio = horaInicioNormalizada,
+                horaFin = horaFinNormalizada
+            )
+            if (existeTraslape) {
+                _state.update {
+                    it.copy(errorMessage = "Ya existe un horario traslapado en esa franja. Elige otra hora")
+                }
+                return@launch
+            }
+
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
             // 3. AGREGAMOS EL usuarioId AL CONSTRUCTOR DEL HORARIO
@@ -122,8 +140,8 @@ class CrearHorarioViewModel(
                 materiaId = materia.id,
                 profesorId = profesor.id,
                 dia = _state.value.diaSeleccionado,
-                horaInicio = normalizeHour(_state.value.horaInicio),
-                horaFin = normalizeHour(_state.value.horaFin),
+                horaInicio = horaInicioNormalizada,
+                horaFin = horaFinNormalizada,
                 color = _state.value.colorSeleccionado
             )
 
@@ -132,8 +150,13 @@ class CrearHorarioViewModel(
             result.onSuccess {
                 _state.update { it.copy(isLoading = false, isSuccess = true) }
             }.onFailure { exception ->
+                val errorMessage = if (exception is HorarioDuplicadoException) {
+                    "No se puede colocar un horario en la misma hora que otro"
+                } else {
+                    exception.message ?: "Error al guardar"
+                }
                 _state.update {
-                    it.copy(isLoading = false, errorMessage = exception.message ?: "Error al guardar")
+                    it.copy(isLoading = false, errorMessage = errorMessage)
                 }
             }
         }

@@ -7,6 +7,16 @@ import com.example.organizadoracademico.domain.model.Horario
 
 @Entity(
     tableName = "horarios",
+    indices = [
+        androidx.room.Index("materiaId"),
+        androidx.room.Index("profesorId"),
+        androidx.room.Index("usuarioId"),
+        // Restricción UNIQUE para evitar horarios duplicados en el mismo horario
+        androidx.room.Index(
+            value = ["usuarioId", "dia", "horaInicio", "horaFin"],
+            unique = true
+        )
+    ],
     foreignKeys = [
         ForeignKey(
             entity = MateriaEntity::class,

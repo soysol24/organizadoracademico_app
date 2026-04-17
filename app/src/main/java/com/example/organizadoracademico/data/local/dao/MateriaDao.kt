@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.example.organizadoracademico.data.local.entities.MateriaEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -12,8 +13,11 @@ interface MateriaDao {
     @Query("SELECT * FROM materias ORDER BY nombre ASC")
     fun getAll(): Flow<List<MateriaEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(materia: MateriaEntity)
+
+    @Update
+    suspend fun update(materia: MateriaEntity)
 
     @Query("SELECT * FROM materias WHERE id = :id LIMIT 1")
     suspend fun getById(id: Int): MateriaEntity?

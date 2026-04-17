@@ -191,39 +191,19 @@ class SyncWorker(
 
     private suspend fun mapHorarioRequestToRemoteIds(horario: HorarioEntity): CreateHorarioRequestDto? {
         val baseRequest = horario.toDomain().toCreateRequestDto()
-        val localMateria = materiaDao.getById(horario.materiaId)
-        val localProfesor = profesorDao.getById(horario.profesorId)
-
-        val remoteMateriaId = resolveRemoteMateriaId(localMateria?.nombre)
-        val remoteProfesorId = resolveRemoteProfesorId(localProfesor?.nombre)
-
+        
+        // Los IDs locales de materias y profesores ahora coinciden directamente con los IDs remotos
+        // después del cambio a ID-driven sync (DataInitializer asigna ids 1..54 en orden)
         Log.d(
             TAG,
-            "mapHorarioRequestToRemoteIds: localMateria=${horario.materiaId} localProfesor=${horario.profesorId} remoteMateria=$remoteMateriaId remoteProfesor=$remoteProfesorId"
+            "mapHorarioRequestToRemoteIds: localMateria=${horario.materiaId} localProfesor=${horario.profesorId} (usando directamente como remote IDs)"
         )
 
-        if (remoteMateriaId == null || remoteProfesorId == null) {
-            return null
-        }
-
+        // Simplemente usar los IDs locales directamente como IDs remotos
         return baseRequest.copy(
-            materiaId = remoteMateriaId,
-            profesorId = remoteProfesorId
+            materiaId = horario.materiaId,
+            profesorId = horario.profesorId
         )
-    }
-
-    private suspend fun resolveRemoteMateriaId(nombre: String?): Int? {
-        if (nombre.isNullOrBlank()) return null
-        val response = runCatching { apiService.getMaterias() }.getOrNull() ?: return null
-        if (!response.isSuccessful) return null
-        return response.body().orEmpty().firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }?.id
-    }
-
-    private suspend fun resolveRemoteProfesorId(nombre: String?): Int? {
-        if (nombre.isNullOrBlank()) return null
-        val response = runCatching { apiService.getProfesores() }.getOrNull() ?: return null
-        if (!response.isSuccessful) return null
-        return response.body().orEmpty().firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }?.id
     }
 
     private fun buildFilePart(uriString: String): MultipartBody.Part? {
@@ -288,3 +268,4 @@ class SyncWorker(
         private const val TAG = "SYNC_HORARIOS"
     }
 }
+

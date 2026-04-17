@@ -45,6 +45,7 @@ val useCaseModule = module {
     factory { GetHorariosUseCase(get()) }
     factory { DeleteHorarioUseCase(get()) }
     factory { UpdateHorarioUseCase(get()) }
+    factory { ValidateHorarioTraslapeUseCase(get()) }
 
     // Materias y profesores
     factory { GetMateriasUseCase(get()) }
@@ -80,7 +81,7 @@ val viewModelModule = module {
     }
 
     viewModel { VerHorarioViewModel(get(), get(), get(), get(), get()) }
-    viewModel { CrearHorarioViewModel(get(), get(), get(), get()) }
+    viewModel { CrearHorarioViewModel(get(), get(), get(), get(), get()) }
     viewModel { GaleriaViewModel(get(), get(), get(), get()) }
     viewModel { CamaraViewModel(get()) }
     viewModel { NotaViewModel(get(), get(), get(), get()) }

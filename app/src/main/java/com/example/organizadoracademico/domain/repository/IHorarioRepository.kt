@@ -10,4 +10,10 @@ interface IHorarioRepository {
     suspend fun insertHorario(horario: Horario)
     suspend fun updateHorario(horario: Horario)
     suspend fun deleteHorario(id: Int)
+    suspend fun existeTraslapeHorario(
+        usuarioId: Int,
+        dia: String,
+        horaInicio: String,
+        horaFin: String
+    ): Boolean
 }

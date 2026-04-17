@@ -7,6 +7,11 @@ import com.example.organizadoracademico.domain.model.Imagen
 
 @Entity(
     tableName = "imagenes",
+    indices = [
+        androidx.room.Index("materiaId"),
+        androidx.room.Index("usuarioId"),
+        androidx.room.Index("horarioId")
+    ],
     foreignKeys = [
         ForeignKey(
             entity = MateriaEntity::class,

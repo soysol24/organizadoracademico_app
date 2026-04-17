@@ -27,7 +27,7 @@ import com.example.organizadoracademico.data.local.entities.UsuarioEntity
         ImagenEntity::class,
         SyncQueueEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

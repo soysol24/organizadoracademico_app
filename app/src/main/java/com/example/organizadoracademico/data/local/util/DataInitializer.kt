@@ -100,7 +100,10 @@ class DataInitializer(private val db: AppDatabase) {
                 MateriaEntity(nombre = "Ciencia de Datos", color = "Azul", icono = "📉"),
                 MateriaEntity(nombre = "Informática Forense", color = "Rojo", icono = "🔍"),
                 MateriaEntity(nombre = "Proyecto Integrador III", color = "Dorado", icono = "🛠️")
-            )
+            ).mapIndexed { index, materia ->
+                // Alinea los IDs locales con el catálogo remoto estable (1..N)
+                materia.copy(id = index + 1)
+            }
             materias.forEach { db.materiaDao().insert(it) }
         }
     }

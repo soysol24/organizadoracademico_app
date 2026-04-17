@@ -43,15 +43,22 @@ class MateriaRepositoryImpl(
 
             response.body().orEmpty().forEach { dto ->
                 runCatching {
-                    val existing = dao.getByNombre(dto.nombre)
-                    dao.insert(
-                        MateriaEntity(
-                            id = existing?.id ?: 0,
-                            nombre = dto.nombre,
-                            color = dto.color,
-                            icono = dto.icono
+                    val existing = dao.getById(dto.id)
+                    if (existing == null) {
+                        dao.insert(MateriaEntity(id = dto.id, nombre = dto.nombre, color = dto.color, icono = dto.icono))
+                    } else if (
+                        existing.nombre != dto.nombre ||
+                        existing.color != dto.color ||
+                        existing.icono != dto.icono
+                    ) {
+                        dao.update(
+                            existing.copy(
+                                nombre = dto.nombre,
+                                color = dto.color,
+                                icono = dto.icono
+                            )
                         )
-                    )
+                    }
                 }
             }
         }

@@ -11,7 +11,11 @@ import com.example.organizadoracademico.domain.usercase.profesor.GetProfesoresUs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -48,37 +52,35 @@ class VerHorarioViewModel(
     }
 
     private fun cargarDatos() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+        _state.update { it.copy(isLoading = true) }
 
-            try {
-                // Usamos combine para escuchar los 3 flujos de datos al mismo tiempo
-                // Pasamos el userId a Horarios y Materias (según tus UseCases actualizados)
-                combine(
-                    getHorariosUseCase(userId),
-                    getMateriasUseCase(),
-                    getProfesoresUseCase() // Si este no pide userId, déjalo así
-                ) { horarios, materias, profesores ->
-                    Triple(horarios, materias, profesores)
-                }.collect { (horarios, materias, profesores) ->
-                    _state.update {
-                        it.copy(
-                            horarios = horarios,
-                            materias = materias.associateBy { m -> m.id },
-                            profesores = profesores.associateBy { p -> p.id },
-                            isLoading = false
-                        )
-                    }
-                }
-            } catch (e: Exception) {
+        combine(
+            getHorariosUseCase(userId),
+            getMateriasUseCase(),
+            getProfesoresUseCase()
+        ) { horarios, materias, profesores ->
+            Triple(horarios, materias, profesores)
+        }
+            .distinctUntilChanged()
+            .onEach { triple ->
+                val horarios = triple.first
+                val materias = triple.second
+                val profesores = triple.third
                 _state.update {
                     it.copy(
-                        isLoading = false,
-                        errorMessage = "Error al cargar datos: ${e.message}"
+                        horarios = horarios,
+                        materias = materias.associateBy { m -> m.id },
+                        profesores = profesores.associateBy { p -> p.id },
+                        isLoading = false
                     )
                 }
             }
-        }
+            .catch { e ->
+                _state.update {
+                    it.copy(isLoading = false, errorMessage = "Error al cargar datos: ${e.message}")
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun eliminarHorario(horarioId: Int) {

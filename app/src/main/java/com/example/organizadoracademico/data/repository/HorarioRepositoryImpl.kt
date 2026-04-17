@@ -1,5 +1,6 @@
 package com.example.organizadoracademico.data.repository
 
+import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import com.example.organizadoracademico.data.local.dao.HorarioDao
 import com.example.organizadoracademico.data.local.dao.MateriaDao
@@ -19,6 +20,7 @@ import com.example.organizadoracademico.data.sync.SyncAction
 import com.example.organizadoracademico.data.sync.SyncEntityType
 import com.example.organizadoracademico.data.sync.SyncScheduler
 import com.example.organizadoracademico.domain.model.Horario
+import com.example.organizadoracademico.domain.exception.HorarioDuplicadoException
 import com.example.organizadoracademico.domain.repository.IHorarioRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +59,14 @@ class HorarioRepositoryImpl(
 
     override suspend fun insertHorario(horario: Horario) {
         ensureLocalReferencesForInsert(horario)
-        val localId = dao.insertAndReturnId(horario.toEntity()).toInt()
+        val localId = try {
+            dao.insertAndReturnIdOrThrow(horario.toEntity()).toInt()
+        } catch (e: Exception) {
+            if (isDuplicateHorarioConstraint(e)) {
+                throw HorarioDuplicadoException()
+            }
+            throw e
+        }
         Log.d(TAG, "insertHorario: localId=$localId materia=${horario.materiaId} profesor=${horario.profesorId}")
         syncQueueDao.insert(
             SyncQueueEntity(
@@ -156,6 +165,20 @@ class HorarioRepositoryImpl(
         syncScheduler.scheduleNow()
     }
 
+    override suspend fun existeTraslapeHorario(
+        usuarioId: Int,
+        dia: String,
+        horaInicio: String,
+        horaFin: String
+    ): Boolean {
+        return dao.countTraslapes(
+            usuarioId = usuarioId,
+            dia = dia,
+            horaInicio = horaInicio,
+            horaFin = horaFin
+        ) > 0
+    }
+
     private suspend fun syncHorarios(userId: Int) {
         try {
             // Evita errores FK al insertar horarios remotos cuando aún no existe catálogo local.
@@ -244,18 +267,25 @@ class HorarioRepositoryImpl(
             Log.d(TAG, "syncCatalogosBase.materias: http=${materiasResponse.code()} ok=${materiasResponse.isSuccessful}")
             val materias = materiasResponse.body().orEmpty()
             materias.forEach { dto ->
-                val existing = materiaDao.getByNombre(dto.nombre)
-                materiaDao.insert(
-                    MateriaEntity(
-                        id = existing?.id ?: 0,
-                        nombre = dto.nombre,
-                        color = dto.color,
-                        icono = dto.icono
+                val existing = materiaDao.getById(dto.id)
+                if (existing == null) {
+                    materiaDao.insert(
+                        MateriaEntity(id = dto.id, nombre = dto.nombre, color = dto.color, icono = dto.icono)
                     )
-                )
-                materiaDao.getByNombre(dto.nombre)?.id?.let { localId ->
-                    materiaIdMap[dto.id] = localId
+                } else if (
+                    existing.nombre != dto.nombre ||
+                    existing.color != dto.color ||
+                    existing.icono != dto.icono
+                ) {
+                    materiaDao.update(
+                        existing.copy(
+                            nombre = dto.nombre,
+                            color = dto.color,
+                            icono = dto.icono
+                        )
+                    )
                 }
+                materiaIdMap[dto.id] = dto.id
             }
             Log.d(TAG, "syncCatalogosBase.materias: upsert=${materias.size}")
         }.onFailure { e ->
@@ -268,7 +298,9 @@ class HorarioRepositoryImpl(
             val profesores = profesoresResponse.body().orEmpty()
             profesores.forEach { dto ->
                 val existing = profesorDao.getByNombre(dto.nombre)
-                profesorDao.insert(ProfesorEntity(id = existing?.id ?: 0, nombre = dto.nombre))
+                if (existing == null) {
+                    profesorDao.insert(ProfesorEntity(id = 0, nombre = dto.nombre))
+                }
                 profesorDao.getByNombre(dto.nombre)?.id?.let { localId ->
                     profesorIdMap[dto.id] = localId
                 }
@@ -283,5 +315,20 @@ class HorarioRepositoryImpl(
 
     companion object {
         private const val TAG = "SYNC_HORARIOS"
+    }
+
+    private fun isDuplicateHorarioConstraint(error: Throwable): Boolean {
+        if (error is SQLiteConstraintException) return true
+
+        val fullMessage = buildString {
+            append(error.message.orEmpty())
+            val causeMessage = error.cause?.message.orEmpty()
+            if (causeMessage.isNotBlank()) {
+                append(" ")
+                append(causeMessage)
+            }
+        }.lowercase()
+
+        return fullMessage.contains("unique constraint failed") && fullMessage.contains("horarios")
     }
 }

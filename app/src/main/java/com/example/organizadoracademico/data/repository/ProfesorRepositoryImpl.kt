@@ -40,7 +40,10 @@ class ProfesorRepositoryImpl(
             response.body().orEmpty().forEach { dto ->
                 runCatching {
                     val existing = dao.getByNombre(dto.nombre)
-                    dao.insert(ProfesorEntity(id = existing?.id ?: 0, nombre = dto.nombre))
+                    if (existing == null) {
+                        dao.insert(ProfesorEntity(id = 0, nombre = dto.nombre))
+                    }
+                    // nombre es el único campo relevante; no hace falta update
                 }
             }
         }
