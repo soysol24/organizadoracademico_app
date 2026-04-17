@@ -6,10 +6,11 @@ import com.example.organizadoracademico.data.local.util.SessionManager
 import com.example.organizadoracademico.domain.usercase.horario.GetHorariosUseCase
 import com.example.organizadoracademico.domain.usercase.materia.GetMateriasUseCase
 import com.example.organizadoracademico.domain.usercase.profesor.GetProfesoresUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -24,6 +25,8 @@ class MainViewModel(
     private val _state = MutableStateFlow(MainState())
     val state: StateFlow<MainState> = _state.asStateFlow()
 
+    private var dataJob: Job? = null
+
     init {
         cargarDatos()
     }
@@ -35,51 +38,77 @@ class MainViewModel(
         }
     }
 
-    private fun cargarDatos() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+    fun refresh() {
+        cargarDatos()
+    }
 
-            val userId = sessionManager.getUserId()
-            val nombre = sessionManager.getUserName() ?: "Sol"
-            val diaActual = obtenerDiaActual()
+    private fun cargarDatos() {
+        // Cancelamos cualquier recolección previa para evitar duplicados
+        dataJob?.cancel()
+        dataJob = viewModelScope.launch {
+            // Solo mostramos loading si no tenemos nada para mostrar aún
+            if (_state.value.horariosHoy.isEmpty()) {
+                _state.update { it.copy(isLoading = true) }
+            }
 
             try {
-                val horarios = getHorariosUseCase(userId).first()
-                val materias = getMateriasUseCase().first()
-                val profesores = getProfesoresUseCase().first()
+                val userId = sessionManager.getUserId()
+                val nombre = sessionManager.getUserName() ?: "Estudiante"
+                val diaActual = obtenerDiaActual()
 
-                val horariosDelDia = horarios.filter { it.dia == diaActual }
+                // Escuchamos de forma reactiva a todos los cambios
+                combine(
+                    getHorariosUseCase(userId),
+                    getMateriasUseCase(),
+                    getProfesoresUseCase()
+                ) { horarios, materias, profesores ->
+                    val diaNormalizado = diaActual.normalizar()
+                    
+                    val horariosDelDia = horarios.filter { 
+                        it.dia.normalizar() == diaNormalizado 
+                    }
 
-                val cards = horariosDelDia.mapNotNull { horario ->
-                    val materia = materias.find { it.id == horario.materiaId }
-                    val profesor = profesores.find { it.id == horario.profesorId }
-                    if (materia != null && profesor != null) {
+                    horariosDelDia.map { horario ->
+                        val materia = materias.find { it.id == horario.materiaId }
+                        val profesor = profesores.find { it.id == horario.profesorId }
+                        
                         HorarioCardData(
-                            nombre = materia.nombre,
-                            profesor = profesor.nombre,
+                            nombre = materia?.nombre ?: "Materia desconocida",
+                            profesor = profesor?.nombre ?: "Profesor no asignado",
                             horaInicio = horario.horaInicio,
                             horaFin = horario.horaFin,
-                            color = materia.color
+                            color = horario.color
                         )
-                    } else null
-                }
-
-                _state.update {
-                    it.copy(
-                        usuarioNombre = nombre,
-                        horariosHoy = cards,
-                        isLoading = false
-                    )
+                    }
+                }.collect { cards ->
+                    _state.update {
+                        it.copy(
+                            usuarioNombre = nombre,
+                            horariosHoy = cards,
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = e.message
+                        errorMessage = "Error al cargar datos: ${e.message}"
                     )
                 }
             }
         }
+    }
+
+    private fun String.normalizar(): String {
+        return this.lowercase()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .trim()
     }
 
     private fun obtenerDiaActual(): String {

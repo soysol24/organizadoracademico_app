@@ -55,7 +55,7 @@ fun GaleriaScreen(
         initialValue = -0.5f,
         targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            tween(12000, easing = LinearEasing),
+            tween(20000, easing = LinearEasing),
             RepeatMode.Restart
         ),
         label = "gradient"
@@ -88,27 +88,14 @@ fun GaleriaScreen(
                 )
         )
 
-        // PARTÍCULAS FLOTANTES (cositas flotando)
-        repeat(12) { index ->
-            val animatedX by infiniteTransition.animateFloat(
-                initialValue = -200f,
-                targetValue = 1200f,
-                animationSpec = infiniteRepeatable(
-                    tween(
-                        durationMillis = (15000 + index * 1000),
-                        easing = LinearEasing
-                    ),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "floatX$index"
-            )
-
+        // PARTÍCULAS FLOTANTES
+        repeat(2) { index ->
             val animatedY by infiniteTransition.animateFloat(
                 initialValue = (-100).dp.value,
                 targetValue = 1200.dp.value,
                 animationSpec = infiniteRepeatable(
                     tween(
-                        durationMillis = (8000 + index * 800),
+                        durationMillis = (15000 + index * 2000),
                         easing = LinearEasing
                     ),
                     repeatMode = RepeatMode.Restart
@@ -119,12 +106,12 @@ fun GaleriaScreen(
             Box(
                 modifier = Modifier
                     .offset(
-                        x = animatedX.dp,
+                        x = (100 + index * 200).dp,
                         y = animatedY.dp
                     )
-                    .size((8 + index * 4).dp)
+                    .size((15 + index * 5).dp)
                     .background(
-                        Color.White.copy(alpha = 0.05f + (index * 0.005f)),
+                        Color.White.copy(alpha = 0.05f),
                         CircleShape
                     )
             )
@@ -269,18 +256,6 @@ fun GaleriaScreen(
                 .padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
-            // Animación de pulso para el FAB
-            val pulseTransition = rememberInfiniteTransition(label = "pulse")
-            val fabScale by pulseTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1000, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "scale"
-            )
-
             FloatingActionButton(
                 onClick = {
                     navController.navigate(Screen.Camara.passMateriaId(materiaId))
@@ -291,9 +266,8 @@ fun GaleriaScreen(
                 modifier = Modifier
                     .size(64.dp)
                     .shadow(
-                        elevation = 12.dp,
-                        shape = CircleShape,
-                        ambientColor = Color.White.copy(alpha = 0.5f)
+                        elevation = 8.dp,
+                        shape = CircleShape
                     )
             ) {
                 Icon(

@@ -41,6 +41,10 @@ class MisMateriasViewModel(
         }
     }
 
+    fun refresh() {
+        cargarDatos()
+    }
+
     private fun cargarDatos() {
         _state.update { it.copy(isLoading = true) }
 

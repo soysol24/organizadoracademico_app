@@ -43,6 +43,10 @@ class VerHorarioViewModel(
         }
     }
 
+    fun refresh() {
+        cargarDatos()
+    }
+
     private fun cargarDatos() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }

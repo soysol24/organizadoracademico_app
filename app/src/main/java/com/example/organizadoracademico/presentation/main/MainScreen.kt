@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.organizadoracademico.presentation.animation.pulseEffect
 import com.example.organizadoracademico.presentation.navigation.Screen
 import org.koin.androidx.compose.koinViewModel
 import java.util.Calendar
@@ -48,12 +47,16 @@ fun MainScreen(
     var isSearchVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "bg_anim")
     val animatedOffset by infiniteTransition.animateFloat(
         initialValue = -0.5f,
         targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(12000, easing = LinearEasing),
+            animation = tween(30000, easing = LinearEasing), // Ralentizado para ahorrar CPU
             repeatMode = RepeatMode.Restart
         ),
         label = "gradient_offset"
@@ -84,14 +87,14 @@ fun MainScreen(
                 )
         )
 
-        // Partículas flotantes
-        repeat(8) { index ->
+        // Partículas flotantes reducidas (antes 8, ahora 2)
+        repeat(2) { index ->
             val animatedY by infiniteTransition.animateFloat(
                 initialValue = (-100).dp.value,
                 targetValue = 1200.dp.value,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
-                        durationMillis = (8000 + index * 1000),
+                        durationMillis = (15000 + index * 5000),
                         easing = LinearEasing
                     ),
                     repeatMode = RepeatMode.Restart
@@ -100,9 +103,9 @@ fun MainScreen(
             )
             Box(
                 modifier = Modifier
-                    .offset(x = (40 + index * 100).dp, y = animatedY.dp)
-                    .size((10 + index * 5).dp)
-                    .background(Color.White.copy(alpha = 0.06f), CircleShape)
+                    .offset(x = (100 + index * 150).dp, y = animatedY.dp)
+                    .size((12 + index * 6).dp)
+                    .background(Color.White.copy(alpha = 0.05f), CircleShape)
             )
         }
 
@@ -207,24 +210,35 @@ fun MainScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Contenido con LazyColumn y peso para ocupar espacio
+            // Contenido con LazyColumn
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (state.isLoading) {
+                // Solo mostrar indicador si está cargando Y no hay datos previos
+                if (state.isLoading && state.horariosHoy.isEmpty()) {
                     item {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 50.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(color = Color.White)
                         }
                     }
                 } else {
-                    val horariosHoy = state.horariosHoy
+                    // Filtrar por búsqueda si hay texto
+                    val horariosFiltrados = if (searchQuery.isEmpty()) {
+                        state.horariosHoy
+                    } else {
+                        state.horariosHoy.filter {
+                            it.nombre.contains(searchQuery, ignoreCase = true) ||
+                            it.profesor.contains(searchQuery, ignoreCase = true)
+                        }
+                    }
 
-                    if (horariosHoy.isEmpty()) {
+                    if (horariosFiltrados.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -234,16 +248,9 @@ fun MainScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = "No tienes clases programadas para hoy",
+                                        text = if (searchQuery.isEmpty()) "No tienes clases programadas para hoy" else "No se encontraron resultados",
                                         fontSize = 16.sp,
                                         color = Color.White.copy(alpha = 0.6f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Toca el botón '+' para agregar tu primer horario",
-                                        fontSize = 13.sp,
-                                        color = Color.White.copy(alpha = 0.4f),
                                         textAlign = TextAlign.Center
                                     )
                                 }
@@ -275,7 +282,7 @@ fun MainScreen(
                             }
                         }
 
-                        items(horariosHoy) { clase ->
+                        items(horariosFiltrados) { clase ->
                             HorarioItem(
                                 nombre = clase.nombre,
                                 profesor = clase.profesor,
@@ -299,7 +306,7 @@ fun MainScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Bottom Navigation (versión que sí funciona)
+            // Bottom Navigation
             BottomNavigationBar5(
                 onInicioClick = { /* Ya estamos en inicio */ },
                 onHorarioClick = { navController.navigate(Screen.VerHorario.route) },
@@ -324,11 +331,10 @@ fun HorarioItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .pulseEffect(true)
             .shadow(
                 elevation = 2.dp,
                 shape = RoundedCornerShape(14.dp),
-                ambientColor = color.copy(alpha = 0.2f)
+                ambientColor = color.copy(alpha = 0.1f)
             ),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = CardDark)

@@ -35,6 +35,10 @@ class GaleriaViewModel(
         }
     }
 
+    fun refresh(materiaId: Int) {
+        cargarImagenes(materiaId)
+    }
+
     private fun cargarImagenes(materiaId: Int) {
         _state.update { it.copy(isLoading = true) }
 

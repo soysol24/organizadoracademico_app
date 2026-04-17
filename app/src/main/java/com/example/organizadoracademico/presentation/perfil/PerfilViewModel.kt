@@ -92,7 +92,8 @@ class PerfilViewModel(
                 vibratorManager.vibrateSuccess()
                 _state.update {
                     it.copy(
-                        isLoggingOut = false
+                        isLoggingOut = false,
+                        usuario = null // LIMPIAMOS EL USUARIO PARA DISPARAR LA NAVEGACIÓN
                     )
                 }
             }.onFailure { exception ->
