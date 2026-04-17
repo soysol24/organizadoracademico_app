@@ -45,6 +45,10 @@ fun VerHorarioScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     val colorBase = Color(0xFF6681EA)
     val colorSecundario = Color(0xFF7E43AA)
 
@@ -84,21 +88,21 @@ fun VerHorarioScreen(
             )
         )
 
-        repeat(8) { index ->
+        repeat(2) { index ->
             val animatedY by infiniteTransition.animateFloat(
                 initialValue = (-100).dp.value,
                 targetValue = 1200.dp.value,
                 animationSpec = infiniteRepeatable(
-                    tween(8000 + index * 1000, easing = LinearEasing),
+                    tween(15000 + index * 2000, easing = LinearEasing),
                     RepeatMode.Restart
                 ),
                 label = "float$index"
             )
             Box(
                 Modifier
-                    .offset(x = (40 + index * 100).dp, y = animatedY.dp)
-                    .size((10 + index * 5).dp)
-                    .background(Color.White.copy(alpha = 0.06f), CircleShape)
+                    .offset(x = (100 + index * 200).dp, y = animatedY.dp)
+                    .size((15 + index * 5).dp)
+                    .background(Color.White.copy(alpha = 0.05f), CircleShape)
             )
         }
 
@@ -201,12 +205,6 @@ fun SwipeToDeleteCard(
     onDelete: () -> Unit
 ) {
     var offsetX by remember { mutableStateOf(0f) }
-    val pulse = rememberInfiniteTransition(label = "pulse")
-    val scale by pulse.animateFloat(
-        1f, 1.02f,
-        infiniteRepeatable(tween(1400), RepeatMode.Reverse),
-        label = "scale"
-    )
 
     val materiaNombre = viewModel.getNombreMateria(horario.materiaId)
     val profesorNombre = viewModel.getNombreProfesor(horario.profesorId)
@@ -279,7 +277,6 @@ fun SwipeToDeleteCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale }
                 .offset { IntOffset(offsetX.roundToInt(), 0) },
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = cardDark),

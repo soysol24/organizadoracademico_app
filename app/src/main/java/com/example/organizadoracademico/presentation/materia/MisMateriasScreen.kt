@@ -47,6 +47,10 @@ fun MisMateriasScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     val colorBase = Color(0xFF6681EA)
     val colorSecundario = Color(0xFF7E43AA)
     val cardDark = Color(0xFF1A1A2E)
@@ -85,13 +89,13 @@ fun MisMateriasScreen(
         )
 
         // Elementos flotantes
-        repeat(8) { index ->
+        repeat(2) { index ->
             val animatedY by infiniteTransition.animateFloat(
                 initialValue = (-100).dp.value,
                 targetValue = 1200.dp.value,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
-                        durationMillis = (8000 + index * 1000),
+                        durationMillis = (15000 + index * 2000),
                         easing = LinearEasing
                     ),
                     repeatMode = RepeatMode.Restart
@@ -101,12 +105,12 @@ fun MisMateriasScreen(
             Box(
                 modifier = Modifier
                     .offset(
-                        x = (40 + index * 100).dp,
+                        x = (100 + index * 200).dp,
                         y = animatedY.dp
                     )
-                    .size((10 + index * 5).dp)
+                    .size((15 + index * 5).dp)
                     .background(
-                        Color.White.copy(alpha = 0.06f),
+                        Color.White.copy(alpha = 0.05f),
                         CircleShape
                     )
             )
